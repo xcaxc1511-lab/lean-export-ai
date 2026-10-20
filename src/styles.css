@@ -1,0 +1,324 @@
+@import "tailwindcss" source(none);
+@source "./";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+/* Approved template tokens, expressed through the native Tailwind 4 theme. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --blur-sm: 4px;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --font-sans:
+    Roboto, "Helvetica Neue", Arial, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  /* Leandigi brand surfaces (dark navy family, from leandigi.pages.dev). */
+  --color-brand-ink: #13182c;
+  --color-brand-ink-2: #1c2238;
+  --color-brand-ink-3: #262c47;
+  --color-brand-line: #2f334a;
+  --color-brand-footer: #111319;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+@layer base {
+  :root {
+    /* Leandigi palette — see https://leandigi.pages.dev/ */
+    --background: #ffffff;
+    --foreground: #13182c;
+
+    --card: #ffffff;
+    --card-foreground: #13182c;
+
+    --popover: #ffffff;
+    --popover-foreground: #13182c;
+
+    --primary: #f5cf5a;
+    --primary-foreground: #0a0a0a;
+
+    --secondary: #f7f7f4;
+    --secondary-foreground: #13182c;
+
+    --muted: #f1f1ee;
+    --muted-foreground: #686a75;
+
+    --accent: #fdf6de;
+    --accent-foreground: #17130b;
+
+    --destructive: hsl(0 84.2% 60.2%);
+    --destructive-foreground: hsl(210 40% 98%);
+
+    --border: rgba(19, 24, 44, 0.13);
+    --input: rgba(19, 24, 44, 0.13);
+    --ring: #f5cf5a;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: hsl(0 0% 98%);
+
+    --sidebar-foreground: hsl(240 5.3% 26.1%);
+
+    --sidebar-primary: hsl(240 5.9% 10%);
+
+    --sidebar-primary-foreground: hsl(0 0% 98%);
+
+    --sidebar-accent: hsl(240 4.8% 95.9%);
+
+    --sidebar-accent-foreground: hsl(240 5.9% 10%);
+
+    --sidebar-border: hsl(220 13% 91%);
+
+    --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  }
+
+  .dark {
+    --background: #13182c;
+    --foreground: hsl(210 40% 98%);
+
+    --card: #13182c;
+    --card-foreground: hsl(210 40% 98%);
+
+    --popover: #13182c;
+    --popover-foreground: hsl(210 40% 98%);
+
+    --primary: #f5cf5a;
+    --primary-foreground: #0a0a0a;
+
+    --secondary: hsl(217.2 32.6% 17.5%);
+    --secondary-foreground: hsl(210 40% 98%);
+
+    --muted: hsl(217.2 32.6% 17.5%);
+    --muted-foreground: hsl(215 20.2% 65.1%);
+
+    --accent: hsl(217.2 32.6% 17.5%);
+    --accent-foreground: hsl(210 40% 98%);
+
+    --destructive: hsl(0 62.8% 30.6%);
+    --destructive-foreground: hsl(210 40% 98%);
+
+    --border: hsl(217.2 32.6% 17.5%);
+    --input: hsl(217.2 32.6% 17.5%);
+    --ring: #f5cf5a;
+    --sidebar-background: hsl(240 5.9% 10%);
+    --sidebar-foreground: hsl(240 4.8% 95.9%);
+    --sidebar-primary: hsl(224.3 76.3% 48%);
+    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-accent: hsl(240 3.7% 15.9%);
+    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+    --sidebar-border: hsl(240 3.7% 15.9%);
+    --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  }
+}
+
+/* Match the approved v3 container's single 1400px breakpoint. */
+@utility container {
+  width: 100%;
+  max-width: none;
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (min-width: 1400px) {
+    max-width: 1400px;
+  }
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+  :where(a, button):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 4px;
+  }
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+}
+
+/*
+ * Unified button system — mirrors the Leandigi button (pill, bold uppercase,
+ * gold fill, white on hover). Use `.btn` plus one colour variant:
+ *   .btn-primary       gold → white      (default CTA, any background)
+ *   .btn-dark          navy → white      (CTA on gold backgrounds)
+ *   .btn-outline-light white outline     (secondary action on dark backgrounds)
+ *   .btn-outline-dark  navy outline      (secondary action on light/gold backgrounds)
+ * Add `.btn-sm` for compact buttons and `<span class="btn-arrow">` for the arrow badge.
+ */
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 52px;
+    padding: 10px 30px;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 20px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.25s ease,
+      color 0.25s ease,
+      border-color 0.25s ease;
+  }
+  .btn:has(.btn-arrow) {
+    padding-right: 10px;
+  }
+  .btn-sm {
+    min-height: 42px;
+    padding: 8px 22px;
+    font-size: 13px;
+  }
+  .btn-sm:has(.btn-arrow) {
+    padding-right: 6px;
+  }
+  .btn-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    background: #fff;
+    color: #0a0a0a;
+    transition: transform 0.25s ease;
+  }
+  .btn-arrow svg {
+    width: 16px;
+    height: 16px;
+  }
+  .btn:hover .btn-arrow {
+    transform: translateX(2px);
+  }
+
+  .btn-primary {
+    background: #facd4a;
+    color: #0a0a0a;
+  }
+  /* Hover: white fill; the gold border keeps the pill visible on white sections. */
+  .btn-primary:hover {
+    border-color: #facd4a;
+    background: #fff;
+    color: #0a0a0a;
+  }
+  .btn-primary:hover .btn-arrow {
+    background: #facd4a;
+  }
+  .btn-dark {
+    background: #13182c;
+    color: #fff;
+  }
+  .btn-dark .btn-arrow {
+    background: #facd4a;
+  }
+  .btn-dark:hover {
+    background: #fff;
+    color: #0a0a0a;
+  }
+  .btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.45);
+    background: transparent;
+    color: #fff;
+  }
+  .btn-outline-light:hover {
+    border-color: #fff;
+    background: #fff;
+    color: #0a0a0a;
+  }
+  .btn-outline-dark {
+    border-color: #13182c;
+    background: transparent;
+    color: #13182c;
+  }
+  .btn-outline-dark:hover {
+    background: #13182c;
+    color: #fff;
+  }
+}
+
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 100;
+  padding: 1rem;
+  background: white;
+  color: black;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
