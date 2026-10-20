@@ -142,7 +142,7 @@ export function Header() {
           <img
             src={businessConfig.logoUrl}
             alt={businessConfig.logoAlt || businessConfig.businessName}
-            width={1020}
+            width={1030}
             height={187}
             className="h-8 w-auto sm:h-9 xl:h-11"
             loading="eager"
