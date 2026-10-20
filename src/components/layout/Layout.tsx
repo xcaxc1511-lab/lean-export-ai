@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
+import { FloatingContact } from "@/components/FloatingContact";
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <Footer />
+      <FloatingContact />
     </div>
   );
 }

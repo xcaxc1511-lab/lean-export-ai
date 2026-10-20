@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useState, type FocusEvent } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Phone, Menu, X, ChevronDown, ArrowRight } from "lucide-react";
 import { phoneHref } from "@/lib/contact";
 import { businessConfig } from "@/config/business";
@@ -73,8 +73,58 @@ function LanguageToggle({ className = "" }: { className?: string }) {
   );
 }
 
+/**
+ * Hover dropdown (Leandigi style). Picking an item closes the menu right away:
+ * focus is dropped and the menu stays shut until the pointer leaves the dropdown,
+ * otherwise :hover / :focus-within would keep it open after navigating.
+ */
+function NavDropdown({
+  label,
+  active,
+  links,
+}: {
+  label: string;
+  active: boolean;
+  links: { href: string; label: string }[];
+}) {
+  const [closed, setClosed] = useState(false);
+  const reopen = () => setClosed(false);
+  return (
+    <div
+      className={`nav-dropdown${closed ? " is-closed" : ""}`}
+      onMouseLeave={reopen}
+      onBlur={(e: FocusEvent<HTMLDivElement>) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) reopen();
+      }}
+    >
+      <button
+        type="button"
+        className={`nav-dropdown-toggle${active ? " active" : ""}`}
+        onClick={reopen}
+      >
+        {label} <ChevronDown className="caret" aria-hidden="true" />
+      </button>
+      <div className="nav-dropdown-menu">
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            to={link.href}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              setClosed(true);
+            }}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Header() {
   const { t } = useLang();
+  const pathname = useLocation({ select: (location) => location.pathname });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMobileSection, setOpenMobileSection] = useState<string | null>(null);
 
@@ -103,72 +153,51 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-8">
-          <nav className="flex items-center gap-6 text-sm font-medium text-gray-300">
-            <Link to="/" className="hover:text-primary transition-colors">
+          <nav className="site-nav">
+            <Link to="/" className="nav-link" activeOptions={{ exact: true, includeHash: true }}>
               {t(ui.home)}
             </Link>
 
             {/* Products Dropdown */}
             {services.length > 0 && (
-              <div className="relative group">
-                <button className="flex items-center gap-1 hover:text-primary transition-colors py-8">
-                  {t(ui.products)} <ChevronDown className="w-4 h-4" />
-                </button>
-                <div className="absolute top-full left-0 w-64 bg-brand-ink-2 border border-white/10 rounded-sm shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 flex flex-col py-2 max-h-[70vh] overflow-y-auto">
-                  {services.map((service) => (
-                    <Link
-                      key={service.href}
-                      to={service.href}
-                      className="px-4 py-2 hover:bg-white/5 hover:text-primary transition-colors"
-                    >
-                      {t(service.label)}
-                    </Link>
-                  ))}
-                </div>
-              </div>
+              <NavDropdown
+                label={t(ui.products)}
+                active={pathname.startsWith("/services")}
+                links={services.map((link) => ({ href: link.href, label: t(link.label) }))}
+              />
             )}
 
             {/* Export Markets Dropdown */}
             {serviceAreas.length > 0 && (
-              <div className="relative group">
-                <button className="flex items-center gap-1 hover:text-primary transition-colors py-8">
-                  {t(ui.markets)} <ChevronDown className="w-4 h-4" />
-                </button>
-                <div className="absolute top-full left-0 w-56 bg-brand-ink-2 border border-white/10 rounded-sm shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 flex flex-col py-2 max-h-[70vh] overflow-y-auto">
-                  {serviceAreas.map((area) => (
-                    <Link
-                      key={area.href}
-                      to={area.href}
-                      className="px-4 py-2 hover:bg-white/5 hover:text-primary transition-colors"
-                    >
-                      {t(area.label)}
-                    </Link>
-                  ))}
-                </div>
-              </div>
+              <NavDropdown
+                label={t(ui.markets)}
+                active={pathname.startsWith("/areas")}
+                links={serviceAreas.map((link) => ({ href: link.href, label: t(link.label) }))}
+              />
             )}
 
-            <Link to="/about" className="hover:text-primary transition-colors">
+            <Link to="/about" className="nav-link">
               {t(ui.about)}
             </Link>
-
-            <Link to="/" hash="photo-gallery" className="hover:text-primary transition-colors">
+            <Link
+              to="/"
+              hash="photo-gallery"
+              className="nav-link"
+              activeOptions={{ exact: true, includeHash: true }}
+            >
               {t(ui.gallery)}
             </Link>
-            <Link to="/contact" className="hover:text-primary transition-colors">
+            <Link to="/contact" className="nav-link">
               {t(ui.contact)}
             </Link>
           </nav>
 
           <div className="flex items-center gap-3">
-            <a
-              href={phoneHref()}
-              className="btn btn-outline-light btn-sm hidden xl:inline-flex"
-            >
+            <LanguageToggle />
+            <a href={phoneHref()} className="btn btn-outline-light btn-sm hidden xl:inline-flex">
               <Phone className="w-4 h-4" />
               {businessConfig.phone}
             </a>
-            <LanguageToggle />
             <Link to={navigationConfig.cta.href} className="btn btn-primary btn-sm">
               {t(navigationConfig.cta.label)}
             </Link>
@@ -290,10 +319,7 @@ export function Header() {
             </Link>
 
             <div className="flex flex-col gap-3 mt-6">
-              <a
-                href={phoneHref()}
-                className="btn btn-outline-light w-full"
-              >
+              <a href={phoneHref()} className="btn btn-outline-light w-full">
                 <Phone className="w-4 h-4" />
                 {businessConfig.phone}
               </a>

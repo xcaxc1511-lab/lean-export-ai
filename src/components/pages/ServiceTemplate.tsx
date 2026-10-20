@@ -171,20 +171,27 @@ const ServiceTemplate = ({ service }: { service: ServiceConfig }) => {
         )}
 
         {/* CTA Section */}
-        <section className="py-20 bg-primary text-primary-foreground">
-          <div className="container mx-auto px-4 text-center">
+        <section className="relative overflow-hidden bg-brand-ink py-24 text-white md:py-28">
+          <img
+            src={service.ctaImageUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="absolute inset-0 bg-linear-to-b from-brand-ink/90 via-brand-ink/75 to-brand-ink/90" />
+          <div className="container relative z-10 mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-5xl font-bold mb-8">{t(copy.ctaTitle, { name })}</h2>
-            <p className="text-xl text-primary-foreground/80 mb-10 max-w-2xl mx-auto">
-              {t(copy.ctaBody)}
-            </p>
+            <p className="text-xl text-gray-200 mb-10 max-w-2xl mx-auto">{t(copy.ctaBody)}</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/get-free-quote" className="btn btn-dark w-full sm:w-auto">
+              <Link to="/get-free-quote" className="btn btn-primary w-full sm:w-auto">
                 {t(copy.ctaButton)}{" "}
                 <span className="btn-arrow">
                   <ArrowRight />
                 </span>
               </Link>
-              <a href={telHref} className="btn btn-outline-dark w-full sm:w-auto">
+              <a href={telHref} className="btn btn-outline-light w-full sm:w-auto">
                 <Phone className="h-4 w-4" /> {businessConfig.phone}
               </a>
             </div>

@@ -11,7 +11,7 @@ import { defineConfig } from "@leadconnector/vite-tanstack-config";
  * Static export for GitHub Pages. Only active when GITHUB_PAGES_BASE is set
  * (e.g. "/lean-export-ai"), so dev, AI Studio and the default SSR build are unchanged.
  */
-const pagesBase = process.env.GITHUB_PAGES_BASE?.replace(/\/+$/, "");
+const pagesBase = process.env["GITHUB_PAGES_BASE"]?.replace(/\/+$/, "");
 
 export default defineConfig({
   // Browser errors stay in the trusted parent-frame console-log flow;
@@ -24,10 +24,14 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: {
-    allowedHosts: true, entry: "server" },
+      allowedHosts: true,
+      entry: "server",
+    },
     ...(pagesBase !== undefined && {
       router: { basepath: pagesBase || "/" },
       prerender: { enabled: true, crawlLinks: true, failOnError: true },
+      // Pages serves /404.html for unknown URLs.
+      pages: [{ path: "/404", prerender: { outputPath: "/404", autoSubfolderIndex: false } }],
     }),
   },
 });

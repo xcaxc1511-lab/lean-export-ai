@@ -1,5 +1,11 @@
 import { integrationsConfig } from "@/config/integrations";
 
+/** True when a real review widget URL is configured. */
+export function hasReviewWidget(): boolean {
+  const url = integrationsConfig.reviewWidgetUrl;
+  return Boolean(url && !url.startsWith("YOUR_"));
+}
+
 /** Direct iframe src works on the first response and each route mount. */
 export function ReviewWidget() {
   const url = integrationsConfig.reviewWidgetUrl;

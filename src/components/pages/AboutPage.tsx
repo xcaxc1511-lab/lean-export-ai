@@ -129,20 +129,27 @@ export default function AboutPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-24 bg-primary text-primary-foreground text-center">
-          <div className="container mx-auto px-4">
+        <section className="relative overflow-hidden bg-brand-ink py-24 text-center text-white md:py-28">
+          <img
+            src={images.containerStacks}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="absolute inset-0 bg-linear-to-b from-brand-ink/90 via-brand-ink/75 to-brand-ink/90" />
+          <div className="container relative z-10 mx-auto px-4">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">{t(copy.ctaTitle)}</h2>
-            <p className="text-xl text-primary-foreground/80 mb-10 max-w-2xl mx-auto">
-              {t(copy.ctaBody, vars)}
-            </p>
+            <p className="text-xl text-gray-200 mb-10 max-w-2xl mx-auto">{t(copy.ctaBody, vars)}</p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link to="/get-free-quote" className="btn btn-dark">
+              <Link to="/get-free-quote" className="btn btn-primary">
                 {t(copy.ctaQuote)}{" "}
                 <span className="btn-arrow">
                   <ArrowRight />
                 </span>
               </Link>
-              <Link to="/contact" className="btn btn-outline-dark">
+              <Link to="/contact" className="btn btn-outline-light">
                 {t(copy.ctaContact)}
               </Link>
             </div>

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
+import { Route as R404RouteImport } from './routes/404'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as GetFreeQuoteRouteImport } from './routes/get-free-quote'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const R404Route = R404RouteImport.update({
+  id: '/404',
+  path: '/404',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -80,6 +86,7 @@ const ServicesServiceIdRoute = ServicesServiceIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/404': typeof R404Route
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/get-free-quote': typeof GetFreeQuoteRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/404': typeof R404Route
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/get-free-quote': typeof GetFreeQuoteRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/404': typeof R404Route
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
   '/get-free-quote': typeof GetFreeQuoteRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/404'
     | '/about'
     | '/contact'
     | '/get-free-quote'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/404'
     | '/about'
     | '/contact'
     | '/get-free-quote'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$'
+    | '/404'
     | '/about'
     | '/contact'
     | '/get-free-quote'
@@ -162,6 +174,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  R404Route: typeof R404Route
   AboutRoute: typeof AboutRoute
   ContactRoute: typeof ContactRoute
   GetFreeQuoteRoute: typeof GetFreeQuoteRoute
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/404': {
+      id: '/404'
+      path: '/404'
+      fullPath: '/404'
+      preLoaderRoute: typeof R404RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -258,6 +278,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  R404Route: R404Route,
   AboutRoute: AboutRoute,
   ContactRoute: ContactRoute,
   GetFreeQuoteRoute: GetFreeQuoteRoute,

@@ -25,3 +25,24 @@ export function phoneHref(phone: string = businessConfig.phone): string {
 export function emailHref(email: string = businessConfig.email): string {
   return `mailto:${email}`;
 }
+
+/** Mailto href with a pre-filled subject (and optional body). */
+export function mailtoHref(
+  subject: string,
+  body?: string,
+  email: string = businessConfig.email,
+): string {
+  const params = [`subject=${encodeURIComponent(subject)}`];
+  if (body) params.push(`body=${encodeURIComponent(body)}`);
+  return `mailto:${email}?${params.join("&")}`;
+}
+
+/** WhatsApp chat link (international digits only, e.g. "84901234567"). */
+export function whatsappHref(number: string = businessConfig.whatsapp): string {
+  return `https://wa.me/${number.replace(/\D/g, "")}`;
+}
+
+/** Zalo chat link (Vietnamese phone number, e.g. "0901234567"). */
+export function zaloHref(number: string = businessConfig.zalo): string {
+  return `https://zalo.me/${number.replace(/\D/g, "")}`;
+}

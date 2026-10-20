@@ -11,6 +11,8 @@ export interface ServiceConfig {
   /** Optional dedicated 1920×1080 hero photograph; defaults to imageUrl. */
   heroImageUrl?: string;
   imageUrl: string;
+  /** Background photo for the closing CTA — must differ from the hero and intro images. */
+  ctaImageUrl: string;
   imageAlt: L;
   features: L[];
   processSteps: { title: L; description: L }[];
@@ -39,6 +41,7 @@ export const servicesConfig: ServiceConfig[] = [
     },
     heroImageUrl: images.beansInSack,
     imageUrl: images.greenBeans,
+    ctaImageUrl: images.sacks,
     imageAlt: { en: "Robusta green coffee beans", vi: "Hạt cà phê nhân Robusta" },
     features: [
       { en: "Grades S18, S16, S13", vi: "Cỡ hạt S18, S16, S13" },
@@ -107,6 +110,7 @@ export const servicesConfig: ServiceConfig[] = [
     },
     heroImageUrl: images.coffeeBlossom,
     imageUrl: images.greenBeansScoop,
+    ctaImageUrl: images.cupping,
     imageAlt: { en: "Arabica green coffee beans", vi: "Hạt cà phê nhân Arabica" },
     features: [
       { en: "Grown at 1,000–1,600 m", vi: "Trồng ở độ cao 1.000–1.600 m" },
@@ -178,6 +182,7 @@ export const servicesConfig: ServiceConfig[] = [
     },
     heroImageUrl: images.cherriesOnBranch,
     imageUrl: images.cherriesHandful,
+    ctaImageUrl: images.greenBeans,
     imageAlt: { en: "Excelsa coffee cherries", vi: "Quả cà phê Excelsa" },
     features: [
       { en: "Green or roasted", vi: "Dạng nhân hoặc rang" },
@@ -239,6 +244,7 @@ export const servicesConfig: ServiceConfig[] = [
     },
     heroImageUrl: images.roaster,
     imageUrl: images.roastedBeans,
+    ctaImageUrl: images.roastedPile,
     imageAlt: { en: "Freshly roasted coffee beans", vi: "Cà phê vừa rang" },
     features: [
       { en: "Custom roast profiles", vi: "Profile rang theo yêu cầu" },
@@ -300,6 +306,7 @@ export const servicesConfig: ServiceConfig[] = [
     },
     heroImageUrl: images.instantPowder,
     imageUrl: images.instantMug,
+    ctaImageUrl: images.cuppingPour,
     imageAlt: { en: "A cup of instant coffee", vi: "Ly cà phê hòa tan" },
     features: [
       { en: "Spray-dried & freeze-dried", vi: "Sấy phun & sấy lạnh" },
@@ -361,6 +368,7 @@ export const servicesConfig: ServiceConfig[] = [
     },
     heroImageUrl: images.sacks,
     imageUrl: images.packagedBags,
+    ctaImageUrl: images.containerStacks,
     imageAlt: { en: "Private label coffee packaging", vi: "Bao bì cà phê nhãn riêng" },
     features: [
       { en: "Low starting MOQ", vi: "MOQ khởi điểm thấp" },

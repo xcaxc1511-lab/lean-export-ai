@@ -10,6 +10,9 @@ export const businessConfig = {
   /** Placeholder contact details — replace with the real hotline and sales email. */
   phone: "+84 000 000 000",
   email: "export@yourdomain.com",
+  /** Chat apps for the floating contact buttons — leave empty to hide a button. Placeholders: replace before launch. */
+  whatsapp: "84000000000",
+  zalo: "0000000000",
   /** Production domain — single source of truth for canonical URLs, sitemap and robots.txt. */
   website: "https://yourwebsite.com",
   address: "Chu Prong",

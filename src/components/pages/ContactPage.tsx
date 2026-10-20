@@ -1,4 +1,3 @@
-import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -9,19 +8,14 @@ import {
   Mail,
   MapPin,
   Phone,
-  Send,
   Ship,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { HeroMedia } from "@/components/HeroMedia";
-import { LeadForm, hasFormId } from "@/components/LeadForm";
+import { EnquiryForm } from "@/components/EnquiryForm";
 import { businessConfig } from "@/config/business";
 import { integrationsConfig } from "@/config/integrations";
-import { servicesConfig } from "@/config/services";
 import { images } from "@/config/images";
-import { phoneHref, emailHref } from "@/lib/contact";
+import { phoneHref, emailHref, mailtoHref } from "@/lib/contact";
 import { useLang } from "@/lib/i18n";
 
 const copy = {
@@ -46,25 +40,6 @@ const copy = {
   },
   formKicker: { en: "Send an enquiry", vi: "Gửi yêu cầu" },
   formTitle: { en: "Tell us what you need", vi: "Cho chúng tôi biết nhu cầu của bạn" },
-  formNote: {
-    en: "Submitting opens your email app with the details pre-filled.",
-    vi: "Khi gửi, ứng dụng email của bạn sẽ mở với nội dung đã điền sẵn.",
-  },
-  name: { en: "Full name", vi: "Họ và tên" },
-  company: { en: "Company", vi: "Công ty" },
-  yourEmail: { en: "Your email", vi: "Email của bạn" },
-  country: { en: "Country / destination port", vi: "Quốc gia / cảng đến" },
-  product: { en: "Product of interest", vi: "Sản phẩm quan tâm" },
-  chooseProduct: { en: "Select a product", vi: "Chọn sản phẩm" },
-  other: { en: "Other / not sure yet", vi: "Khác / chưa xác định" },
-  volume: { en: "Estimated volume", vi: "Sản lượng dự kiến" },
-  volumePlaceholder: { en: "e.g. 1 × 20ft container / month", vi: "VD: 1 container 20ft / tháng" },
-  message: { en: "Message", vi: "Nội dung" },
-  messagePlaceholder: {
-    en: "Grade, processing, packing, target price, timeline…",
-    vi: "Cấp hạt, phương pháp chế biến, đóng gói, giá mục tiêu, thời gian…",
-  },
-  send: { en: "Send enquiry", vi: "Gửi yêu cầu" },
   enquirySubject: { en: "Enquiry from {company}", vi: "Yêu cầu từ {company}" },
   visitKicker: { en: "Visit us", vi: "Ghé thăm" },
   visitTitle: { en: "At the heart of Vietnam's coffee country", vi: "Giữa vùng cà phê Tây Nguyên" },
@@ -107,45 +82,11 @@ const desks = [
   },
 ];
 
-const fieldClass =
-  "h-12 rounded-md border-gray-200 bg-white text-base focus-visible:border-primary focus-visible:ring-primary/30";
-
 export default function ContactPage() {
   const { t } = useLang();
   const vars = { name: businessConfig.businessName };
   const telHref = phoneHref();
-  const mailTo = (subject: string, body?: string) =>
-    `${emailHref()}?subject=${encodeURIComponent(subject)}${body ? `&body=${encodeURIComponent(body)}` : ""}`;
-
-  const [form, setForm] = useState({
-    name: "",
-    company: "",
-    email: "",
-    country: "",
-    product: "",
-    volume: "",
-    message: "",
-  });
-  const update = (key: keyof typeof form) => (value: string) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
-
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    const lines = [
-      `${t(copy.name)}: ${form.name}`,
-      `${t(copy.company)}: ${form.company}`,
-      `${t(copy.yourEmail)}: ${form.email}`,
-      `${t(copy.country)}: ${form.country}`,
-      `${t(copy.product)}: ${form.product}`,
-      `${t(copy.volume)}: ${form.volume}`,
-      "",
-      form.message,
-    ];
-    window.location.href = mailTo(
-      t(copy.enquirySubject, { company: form.company || form.name }),
-      lines.join("\n"),
-    );
-  };
+  const mailTo = (subject: string) => mailtoHref(subject);
 
   const infoCards = [
     {
@@ -285,106 +226,11 @@ export default function ContactPage() {
                 {t(copy.formTitle)}
               </h2>
 
-              {hasFormId(integrationsConfig.contactFormId) ? (
-                <LeadForm
-                  formId={integrationsConfig.contactFormId}
-                  title="Contact Form"
-                  formName="Contact Form"
-                />
-              ) : (
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="c-name">{t(copy.name)} *</Label>
-                    <Input
-                      id="c-name"
-                      required
-                      autoComplete="name"
-                      value={form.name}
-                      onChange={(e) => update("name")(e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="c-company">{t(copy.company)}</Label>
-                    <Input
-                      id="c-company"
-                      autoComplete="organization"
-                      value={form.company}
-                      onChange={(e) => update("company")(e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="c-email">{t(copy.yourEmail)} *</Label>
-                    <Input
-                      id="c-email"
-                      type="email"
-                      required
-                      autoComplete="email"
-                      value={form.email}
-                      onChange={(e) => update("email")(e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="c-country">{t(copy.country)}</Label>
-                    <Input
-                      id="c-country"
-                      autoComplete="country-name"
-                      value={form.country}
-                      onChange={(e) => update("country")(e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="c-product">{t(copy.product)}</Label>
-                    <select
-                      id="c-product"
-                      value={form.product}
-                      onChange={(e) => update("product")(e.target.value)}
-                      className={`${fieldClass} w-full border px-3 outline-none focus-visible:ring-[3px]`}
-                    >
-                      <option value="">{t(copy.chooseProduct)}</option>
-                      {servicesConfig.map((service) => (
-                        <option key={service.slug} value={t(service.name)}>
-                          {t(service.name)}
-                        </option>
-                      ))}
-                      <option value={t(copy.other)}>{t(copy.other)}</option>
-                    </select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="c-volume">{t(copy.volume)}</Label>
-                    <Input
-                      id="c-volume"
-                      placeholder={t(copy.volumePlaceholder)}
-                      value={form.volume}
-                      onChange={(e) => update("volume")(e.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div className="grid gap-2 sm:col-span-2">
-                    <Label htmlFor="c-message">{t(copy.message)}</Label>
-                    <Textarea
-                      id="c-message"
-                      rows={5}
-                      placeholder={t(copy.messagePlaceholder)}
-                      value={form.message}
-                      onChange={(e) => update("message")(e.target.value)}
-                      className="rounded-md border-gray-200 bg-white text-base focus-visible:border-primary focus-visible:ring-primary/30"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xs text-gray-500">{t(copy.formNote)}</p>
-                    <button type="submit" className="btn btn-primary">
-                      {t(copy.send)}
-                      <span className="btn-arrow">
-                        <Send />
-                      </span>
-                    </button>
-                  </div>
-                </form>
-              )}
+              <EnquiryForm
+                formId={integrationsConfig.contactFormId}
+                variant="contact"
+                idPrefix="contact"
+              />
             </div>
           </div>
         </div>

@@ -65,8 +65,16 @@ export function LangProvider({ children }: { children: ReactNode }) {
   return <LangContext.Provider value={{ lang, setLang, t }}>{children}</LangContext.Provider>;
 }
 
+/** English fallback for components rendered outside the provider (e.g. root-level not-found). */
+const fallback: LangContextValue = {
+  lang: "en",
+  setLang: () => {},
+  t: (value, vars) => {
+    const text = typeof value === "string" ? value : value.en;
+    return vars ? fill(text, vars) : text;
+  },
+};
+
 export function useLang(): LangContextValue {
-  const ctx = useContext(LangContext);
-  if (!ctx) throw new Error("useLang must be used inside <LangProvider>");
-  return ctx;
+  return useContext(LangContext) ?? fallback;
 }

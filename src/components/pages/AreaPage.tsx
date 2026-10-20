@@ -1,5 +1,5 @@
 import { HeroMedia } from "@/components/HeroMedia";
-import { ReviewWidget } from "@/components/ReviewWidget";
+import { ReviewWidget, hasReviewWidget } from "@/components/ReviewWidget";
 import { Link } from "@tanstack/react-router";
 import { MapPin, ChevronRight, Phone, Mail, ArrowRight } from "lucide-react";
 import {
@@ -12,7 +12,7 @@ import type { AreaConfig } from "@/config/areas";
 import { businessConfig } from "@/config/business";
 import { servicesConfig } from "@/config/services";
 import { integrationsConfig } from "@/config/integrations";
-import { LeadForm, hasFormId } from "@/components/LeadForm";
+import { EnquiryForm } from "@/components/EnquiryForm";
 import { phoneHref } from "@/lib/contact";
 import { useLang } from "@/lib/i18n";
 
@@ -43,9 +43,8 @@ const copy = {
     en: "Tell us your product, volume and destination port — we'll send pricing and samples.",
     vi: "Cho chúng tôi biết sản phẩm, sản lượng và cảng đến — chúng tôi sẽ gửi báo giá và mẫu.",
   },
-  mapPlaceholder: { en: "Map Embed Placeholder", vi: "Vị trí bản đồ" },
+  shipFrom: { en: "Shipping from", vi: "Xuất hàng từ" },
   formTitle: { en: "Request a Quote", vi: "Yêu cầu báo giá" },
-  formPlaceholder: { en: "Form Placeholder", vi: "Biểu mẫu" },
 };
 
 export default function AreaPage({ area }: { area: AreaConfig }) {
@@ -190,21 +189,23 @@ export default function AreaPage({ area }: { area: AreaConfig }) {
           </section>
         )}
 
-        {/* Reviews Section */}
-        <section className="py-24 bg-brand-ink-2 relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/80 z-10" />
-          <div className="container relative z-20 mx-auto px-4 text-center">
-            <div className="max-w-3xl mx-auto mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                {t(area.reviewsHeading)}
-              </h2>
-              <p className="text-lg text-gray-300">{t(area.reviewsDescription)}</p>
+        {/* Reviews Section — hidden until a real review widget is configured */}
+        {hasReviewWidget() && (
+          <section className="py-24 bg-brand-ink-2 relative overflow-hidden">
+            <div className="absolute inset-0 bg-black/80 z-10" />
+            <div className="container relative z-20 mx-auto px-4 text-center">
+              <div className="max-w-3xl mx-auto mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                  {t(area.reviewsHeading)}
+                </h2>
+                <p className="text-lg text-gray-300">{t(area.reviewsDescription)}</p>
+              </div>
+              <div className="max-w-5xl mx-auto bg-white/5 border border-white/10 rounded-lg p-8 md:p-16 flex flex-col items-center justify-center min-h-[300px]">
+                <ReviewWidget />
+              </div>
             </div>
-            <div className="max-w-5xl mx-auto bg-white/5 border border-white/10 rounded-lg p-8 md:p-16 flex flex-col items-center justify-center min-h-[300px]">
-              <ReviewWidget />
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* FAQ Section */}
         {area.faqs && area.faqs.length > 0 && (
@@ -285,35 +286,31 @@ export default function AreaPage({ area }: { area: AreaConfig }) {
                     ></iframe>
                   </div>
                 ) : (
-                  <div
-                    className="w-full rounded-sm border border-gray-200 border-dashed bg-gray-50 flex items-center justify-center text-gray-400 font-medium tracking-widest uppercase"
-                    style={{ height: "350px" }}
-                  >
-                    {t(copy.mapPlaceholder)}
+                  <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-5">
+                    <div className="w-12 h-12 bg-brand-ink rounded-full flex items-center justify-center shrink-0">
+                      <MapPin className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        {t(copy.shipFrom)}
+                      </p>
+                      <p className="font-semibold text-gray-900">
+                        {t(businessConfig.localized.address)}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Right Column: Form */}
-              <div className="bg-gray-50 p-8 md:p-10 rounded-sm border border-gray-200 shadow-sm">
+              <div className="bg-gray-50 p-6 md:p-10 rounded-2xl border border-gray-200 shadow-sm">
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">{t(copy.formTitle)}</h3>
-                {hasFormId(integrationsConfig.quoteFormId) ? (
-                  <LeadForm
-                    formId={integrationsConfig.quoteFormId}
-                    title="Quote Form"
-                    formName="Quote Form"
-                  />
-                ) : (
-                  <div className="min-h-[300px] border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-400 font-medium tracking-widest uppercase p-8 text-center bg-white">
-                    <p className="mb-2">{t(copy.formPlaceholder)}</p>
-                    <a
-                      href={telHref}
-                      className="text-sm normal-case tracking-normal hover:text-primary"
-                    >
-                      {businessConfig.phone}
-                    </a>
-                  </div>
-                )}
+                <EnquiryForm
+                  formId={integrationsConfig.quoteFormId}
+                  variant="quote"
+                  idPrefix={`market-${area.slug}`}
+                  defaultCountry={t(area.name)}
+                />
               </div>
             </div>
           </div>

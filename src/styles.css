@@ -293,6 +293,188 @@
     background: transparent;
     color: #13182c;
   }
+  /*
+   * Header navigation — mirrors the Leandigi nav (gold underline on hover/active,
+   * white floating dropdown card). Colours adapted to this site's navy header.
+   */
+  .site-nav {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+  .nav-link,
+  .nav-dropdown-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 2px;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .nav-link::after,
+  .nav-dropdown-toggle::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2.5px;
+    border-radius: 999px;
+    background: #f5cf5a;
+    opacity: 0;
+    transform: scaleX(0);
+    transition:
+      transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.2s;
+  }
+  .nav-link:hover,
+  .nav-dropdown:hover .nav-dropdown-toggle,
+  .nav-dropdown:focus-within .nav-dropdown-toggle {
+    color: #fff;
+  }
+  .nav-link:hover::after,
+  .nav-dropdown:hover .nav-dropdown-toggle::after,
+  .nav-dropdown:focus-within .nav-dropdown-toggle::after {
+    opacity: 0.85;
+    transform: scaleX(1);
+  }
+  .nav-link[data-status="active"],
+  .nav-dropdown-toggle.active {
+    color: #fff;
+    font-weight: 700;
+  }
+  .nav-link[data-status="active"]::after,
+  .nav-dropdown-toggle.active::after {
+    opacity: 1;
+    transform: scaleX(1);
+    box-shadow: 0 2px 8px rgba(245, 207, 90, 0.5);
+  }
+
+  .nav-dropdown {
+    position: relative;
+  }
+  .nav-dropdown-toggle .caret {
+    width: 14px;
+    height: 14px;
+    color: rgba(255, 255, 255, 0.55);
+    transition:
+      transform 0.25s,
+      color 0.2s;
+  }
+  .nav-dropdown:hover .caret,
+  .nav-dropdown:focus-within .caret,
+  .nav-dropdown-toggle.active .caret {
+    color: #fff;
+  }
+  .nav-dropdown:hover .caret,
+  .nav-dropdown:focus-within .caret {
+    transform: rotate(180deg);
+  }
+  .nav-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 14px);
+    left: 50%;
+    z-index: 60;
+    display: grid;
+    gap: 4px;
+    width: 280px;
+    padding: 10px;
+    border: 1px solid rgba(23, 19, 11, 0.14);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 20px 48px rgba(19, 24, 44, 0.14);
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, -8px);
+    /* Closing waits ~150ms so a pointer that briefly slips off can come back.
+       No overflow and no pointer-events:none here — either would break the hover bridge. */
+    transition:
+      opacity 0.2s ease 0.15s,
+      transform 0.2s ease 0.15s,
+      visibility 0s linear 0.35s;
+  }
+  /* Invisible bridge so the menu stays open while the pointer crosses the gap. */
+  .nav-dropdown-menu::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 18px;
+  }
+  .nav-dropdown:hover .nav-dropdown-menu,
+  .nav-dropdown:focus-within .nav-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+    transition:
+      opacity 0.2s,
+      transform 0.2s,
+      visibility 0s;
+  }
+  /* Forced shut right after an item is picked (see NavDropdown); wins over :hover. */
+  .nav-dropdown.is-closed .nav-dropdown-menu {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, -8px);
+    transition: none;
+  }
+  .nav-dropdown.is-closed .caret {
+    transform: none;
+  }
+  .nav-dropdown-menu a {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 11px 14px;
+    border-radius: 10px;
+    color: #3b3730;
+    font-size: 0.92rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-decoration: none;
+    transition:
+      background 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      padding-left 0.2s;
+  }
+  .nav-dropdown-menu a:hover {
+    background: rgba(23, 19, 11, 0.05);
+    color: #111319;
+    transform: translateX(2px);
+  }
+  .nav-dropdown-menu a[data-status="active"] {
+    padding-left: 20px;
+    background: #faecc1;
+    color: #17130b;
+    font-weight: 700;
+  }
+  .nav-dropdown-menu a[data-status="active"]:hover {
+    transform: none;
+  }
+  .nav-dropdown-menu a[data-status="active"]::before {
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    width: 3.5px;
+    height: 18px;
+    border-radius: 999px;
+    background: #f5cf5a;
+    box-shadow: 0 1px 4px rgba(245, 207, 90, 0.5);
+    transform: translateY(-50%);
+  }
+
   .btn-outline-dark:hover {
     background: #13182c;
     color: #fff;
