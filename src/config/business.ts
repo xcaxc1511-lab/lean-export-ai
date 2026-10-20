@@ -21,8 +21,9 @@ export const businessConfig = {
   zip: "",
   serviceRadius: "",
   establishedYear: "2022",
-  logoUrl: "https://leandigi.pages.dev/assets/logo-white.png",
-  logoAlt: "Leandigi — Digital Marketing Tinh Gọn",
+  /** Light-text variant for the navy header; `public/lean-export-logo.png` is the original (for light backgrounds). */
+  logoUrl: `${import.meta.env.BASE_URL}lean-export-logo-white.png`,
+  logoAlt: "Lean Export",
   /** Default social preview image for og:image / twitter:image. Replace with the client's own image after cloning. */
   ogImageUrl:
     "https://vibe.filesafe.space/1788233320733500527/assets/414edb03-1ed7-4ce8-929c-97d36a996e0b.png",

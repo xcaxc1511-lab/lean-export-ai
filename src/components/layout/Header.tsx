@@ -137,14 +137,14 @@ export function Header() {
 
   return (
     <header className="w-full bg-brand-ink text-white border-b border-white/10 sticky top-0 z-50">
-      <div className="container mx-auto px-4 h-24 flex items-center justify-between">
+      <div className="container mx-auto px-4 h-24 flex items-center justify-between gap-6">
         <Link to="/" className="flex items-center gap-2 z-50">
           <img
             src={businessConfig.logoUrl}
             alt={businessConfig.logoAlt || businessConfig.businessName}
-            width={215}
-            height={52}
-            className="h-10 w-auto lg:h-12"
+            width={1020}
+            height={187}
+            className="h-8 w-auto sm:h-9 xl:h-11"
             loading="eager"
             fetchPriority="high"
             decoding="async"
@@ -152,7 +152,7 @@ export function Header() {
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-8">
+        <div className="hidden lg:flex items-center gap-6 xl:gap-8">
           <nav className="site-nav">
             <Link to="/" className="nav-link" activeOptions={{ exact: true, includeHash: true }}>
               {t(ui.home)}
