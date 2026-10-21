@@ -13,14 +13,21 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as GetFreeQuoteRouteImport } from './routes/get-free-quote'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AreasAreaIdRouteImport } from './routes/areas.$areaId'
+import { Route as NewsIndexRouteImport } from './routes/news.index'
+import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as ServicesServiceIdRouteImport } from './routes/services.$serviceId'
+import { Route as AdminNewsIndexRouteImport } from './routes/admin.news.index'
+import { Route as AdminNewsIdRouteImport } from './routes/admin.news.$id'
+import { Route as ApiAdminEnquiriesDotcsvRouteImport } from './routes/api/admin/enquiries[.]csv'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +47,11 @@ const R404Route = R404RouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -72,14 +84,44 @@ const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
   path: '/terms-and-conditions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AreasAreaIdRoute = AreasAreaIdRouteImport.update({
   id: '/areas/$areaId',
   path: '/areas/$areaId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewsIndexRoute = NewsIndexRouteImport.update({
+  id: '/news/',
+  path: '/news/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsSlugRoute = NewsSlugRouteImport.update({
+  id: '/news/$slug',
+  path: '/news/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServicesServiceIdRoute = ServicesServiceIdRouteImport.update({
   id: '/services/$serviceId',
   path: '/services/$serviceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminNewsIndexRoute = AdminNewsIndexRouteImport.update({
+  id: '/news/',
+  path: '/news/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminNewsIdRoute = AdminNewsIdRouteImport.update({
+  id: '/news/$id',
+  path: '/news/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
+const ApiAdminEnquiriesDotcsvRoute = ApiAdminEnquiriesDotcsvRouteImport.update({
+  id: '/api/admin/enquiries.csv',
+  path: '/api/admin/enquiries.csv',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -88,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/$': typeof SplatRoute
   '/404': typeof R404Route
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/get-free-quote': typeof GetFreeQuoteRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -95,7 +138,13 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
+  '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
+  '/admin/': typeof AdminIndexRoute
+  '/news/': typeof NewsIndexRoute
+  '/admin/news/$id': typeof AdminNewsIdRoute
+  '/api/admin/enquiries.csv': typeof ApiAdminEnquiriesDotcsvRoute
+  '/admin/news/': typeof AdminNewsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,7 +158,13 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
+  '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
+  '/admin': typeof AdminIndexRoute
+  '/news': typeof NewsIndexRoute
+  '/admin/news/$id': typeof AdminNewsIdRoute
+  '/api/admin/enquiries.csv': typeof ApiAdminEnquiriesDotcsvRoute
+  '/admin/news': typeof AdminNewsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -117,6 +172,7 @@ export interface FileRoutesById {
   '/$': typeof SplatRoute
   '/404': typeof R404Route
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
   '/get-free-quote': typeof GetFreeQuoteRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
@@ -124,7 +180,13 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
+  '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
+  '/admin/': typeof AdminIndexRoute
+  '/news/': typeof NewsIndexRoute
+  '/admin/news/$id': typeof AdminNewsIdRoute
+  '/api/admin/enquiries.csv': typeof ApiAdminEnquiriesDotcsvRoute
+  '/admin/news/': typeof AdminNewsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -133,6 +195,7 @@ export interface FileRouteTypes {
     | '/$'
     | '/404'
     | '/about'
+    | '/admin'
     | '/contact'
     | '/get-free-quote'
     | '/privacy-policy'
@@ -140,7 +203,13 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms-and-conditions'
     | '/areas/$areaId'
+    | '/news/$slug'
     | '/services/$serviceId'
+    | '/admin/'
+    | '/news/'
+    | '/admin/news/$id'
+    | '/api/admin/enquiries.csv'
+    | '/admin/news/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -154,13 +223,20 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms-and-conditions'
     | '/areas/$areaId'
+    | '/news/$slug'
     | '/services/$serviceId'
+    | '/admin'
+    | '/news'
+    | '/admin/news/$id'
+    | '/api/admin/enquiries.csv'
+    | '/admin/news'
   id:
     | '__root__'
     | '/'
     | '/$'
     | '/404'
     | '/about'
+    | '/admin'
     | '/contact'
     | '/get-free-quote'
     | '/privacy-policy'
@@ -168,7 +244,13 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms-and-conditions'
     | '/areas/$areaId'
+    | '/news/$slug'
     | '/services/$serviceId'
+    | '/admin/'
+    | '/news/'
+    | '/admin/news/$id'
+    | '/api/admin/enquiries.csv'
+    | '/admin/news/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -176,6 +258,7 @@ export interface RootRouteChildren {
   SplatRoute: typeof SplatRoute
   R404Route: typeof R404Route
   AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRouteWithChildren
   ContactRoute: typeof ContactRoute
   GetFreeQuoteRoute: typeof GetFreeQuoteRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
@@ -183,7 +266,10 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   AreasAreaIdRoute: typeof AreasAreaIdRoute
+  NewsSlugRoute: typeof NewsSlugRoute
   ServicesServiceIdRoute: typeof ServicesServiceIdRoute
+  NewsIndexRoute: typeof NewsIndexRoute
+  ApiAdminEnquiriesDotcsvRoute: typeof ApiAdminEnquiriesDotcsvRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -214,6 +300,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -258,11 +351,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsAndConditionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/areas/$areaId': {
       id: '/areas/$areaId'
       path: '/areas/$areaId'
       fullPath: '/areas/$areaId'
       preLoaderRoute: typeof AreasAreaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news/': {
+      id: '/news/'
+      path: '/news'
+      fullPath: '/news/'
+      preLoaderRoute: typeof NewsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news/$slug': {
+      id: '/news/$slug'
+      path: '/news/$slug'
+      fullPath: '/news/$slug'
+      preLoaderRoute: typeof NewsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/services/$serviceId': {
@@ -272,14 +386,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesServiceIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/news/': {
+      id: '/admin/news/'
+      path: '/news'
+      fullPath: '/admin/news/'
+      preLoaderRoute: typeof AdminNewsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/news/$id': {
+      id: '/admin/news/$id'
+      path: '/news/$id'
+      fullPath: '/admin/news/$id'
+      preLoaderRoute: typeof AdminNewsIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/api/admin/enquiries.csv': {
+      id: '/api/admin/enquiries.csv'
+      path: '/api/admin/enquiries.csv'
+      fullPath: '/api/admin/enquiries.csv'
+      preLoaderRoute: typeof ApiAdminEnquiriesDotcsvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
+
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminNewsIdRoute: typeof AdminNewsIdRoute
+  AdminNewsIndexRoute: typeof AdminNewsIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+  AdminNewsIdRoute: AdminNewsIdRoute,
+  AdminNewsIndexRoute: AdminNewsIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   R404Route: R404Route,
   AboutRoute: AboutRoute,
+  AdminRoute: AdminRouteWithChildren,
   ContactRoute: ContactRoute,
   GetFreeQuoteRoute: GetFreeQuoteRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
@@ -287,7 +437,10 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
   AreasAreaIdRoute: AreasAreaIdRoute,
+  NewsSlugRoute: NewsSlugRoute,
   ServicesServiceIdRoute: ServicesServiceIdRoute,
+  NewsIndexRoute: NewsIndexRoute,
+  ApiAdminEnquiriesDotcsvRoute: ApiAdminEnquiriesDotcsvRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

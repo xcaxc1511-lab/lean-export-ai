@@ -12,6 +12,7 @@ const ui = {
   markets: { en: "Export Markets", vi: "Thị trường" },
   about: { en: "About Us", vi: "Về chúng tôi" },
   gallery: { en: "Gallery", vi: "Hình ảnh" },
+  news: { en: "News", vi: "Tin tức" },
   contact: { en: "Contact", vi: "Liên hệ" },
   openMenu: { en: "Open menu", vi: "Mở menu" },
   closeMenu: { en: "Close menu", vi: "Đóng menu" },
@@ -187,6 +188,9 @@ export function Header() {
             >
               {t(ui.gallery)}
             </Link>
+            <Link to="/news" className="nav-link">
+              {t(ui.news)}
+            </Link>
             <Link to="/contact" className="nav-link">
               {t(ui.contact)}
             </Link>
@@ -309,6 +313,13 @@ export function Header() {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               {t(ui.gallery)}
+            </Link>
+            <Link
+              to="/news"
+              className="py-3 border-b border-white/5 block"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t(ui.news)}
             </Link>
             <Link
               to="/contact"

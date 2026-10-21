@@ -31,3 +31,8 @@ src/tailwind.config.vibe.json
 *.njsproj
 *.sln
 *.sw?
+
+# Local backend data and secrets
+.env
+.data/
+.wrangler/

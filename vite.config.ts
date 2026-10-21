@@ -13,11 +13,24 @@ import { defineConfig } from "@leadconnector/vite-tanstack-config";
  */
 const pagesBase = process.env["GITHUB_PAGES_BASE"]?.replace(/\/+$/, "");
 
+/**
+ * Full-stack build for Cloudflare Workers (SSR + backend + D1). Enabled with CF_BUILD=1
+ * (see `npm run build:cf`); output in dist/, deployed with `wrangler deploy`.
+ */
+const cloudflareBuild = Boolean(process.env["CF_BUILD"]);
+
 export default defineConfig({
   // Browser errors stay in the trusted parent-frame console-log flow;
   // do not expose the bridge collector on the public sandbox tunnel.
   devServerBridge: { errorCollector: false },
   ...(pagesBase !== undefined && { vite: { base: `${pagesBase}/` } }),
+  ...(cloudflareBuild && {
+    nitro: {
+      preset: "cloudflare-module",
+      output: { dir: "dist", serverDir: "dist/server", publicDir: "dist/client" },
+      cloudflare: { nodeCompat: true, deployConfig: true },
+    },
+  }),
   // Do not set server.hmr.timeout — Vite 8 deprecated those websocket fields
   // (use server.ws.*). Overlay/host/port are package-owned; default WS timeout is 30s.
   tanstackStart: {

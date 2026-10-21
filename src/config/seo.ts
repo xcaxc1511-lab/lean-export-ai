@@ -286,6 +286,7 @@ export function buildSitemapEntries(): SitemapEntry[] {
     { path: "/about" },
     { path: "/contact" },
     { path: "/get-free-quote" },
+    { path: "/news" },
   ];
 
   servicesConfig.forEach((service) => {

@@ -1,0 +1,24 @@
+// Cloudflare Workers deployment for the full-stack site (SSR + backend + D1).
+// Build with `npm run build:cf`, then deploy with `npm run deploy:cf`.
+// Secrets (ADMIN_PASSWORD, SESSION_SECRET, RESEND_API_KEY) are set with
+// `npx wrangler secret put <NAME>` — never put them in this file.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lean-export",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lean-export",
+      // Replace with the id printed by `npx wrangler d1 create lean-export`.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+  // Non-secret settings. Sender must be on a domain verified in Resend.
+  "vars": {
+    "MAIL_FROM": "Lean Export <noreply@yourdomain.com>",
+    "SALES_EMAIL": "export@yourdomain.com",
+  },
+}

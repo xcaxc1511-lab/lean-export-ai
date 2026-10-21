@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { Send } from "lucide-react";
+import { CheckCircle2, Loader2, Mail, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LeadForm, hasFormId } from "@/components/LeadForm";
 import { servicesConfig } from "@/config/services";
 import { mailtoHref } from "@/lib/contact";
+import { submitEnquiry } from "@/functions/enquiries";
 import { useLang } from "@/lib/i18n";
 
 const copy = {
@@ -32,9 +33,26 @@ const copy = {
   enquirySubject: { en: "Enquiry from {company}", vi: "Yêu cầu từ {company}" },
   quoteSubject: { en: "Quote request from {company}", vi: "Yêu cầu báo giá từ {company}" },
   note: {
-    en: "Submitting opens your email app with the details pre-filled.",
-    vi: "Khi gửi, ứng dụng email của bạn sẽ mở với nội dung đã điền sẵn.",
+    en: "We reply within one business day. Your details are only used to answer this request.",
+    vi: "Chúng tôi phản hồi trong một ngày làm việc. Thông tin của bạn chỉ dùng để trả lời yêu cầu này.",
   },
+  sending: { en: "Sending…", vi: "Đang gửi…" },
+  successTitle: { en: "Thank you — request received!", vi: "Cảm ơn bạn — đã nhận được yêu cầu!" },
+  successBody: {
+    en: "Our export team will reply to {email} within one business day. Your reference is #{id}.",
+    vi: "Đội ngũ xuất khẩu sẽ phản hồi tới {email} trong một ngày làm việc. Mã yêu cầu của bạn là #{id}.",
+  },
+  sendAnother: { en: "Send another request", vi: "Gửi yêu cầu khác" },
+  errorTitle: { en: "We couldn't send your request.", vi: "Chưa gửi được yêu cầu." },
+  errorRate: {
+    en: "Too many requests from your network — please try again in a few minutes.",
+    vi: "Bạn đã gửi quá nhiều yêu cầu — vui lòng thử lại sau vài phút.",
+  },
+  errorBody: {
+    en: "Please try again, or send the same details by email instead.",
+    vi: "Vui lòng thử lại, hoặc gửi thông tin này qua email.",
+  },
+  sendByEmail: { en: "Send by email instead", vi: "Gửi qua email" },
 };
 
 const INCOTERMS = ["FOB", "CIF", "CFR"];
@@ -63,7 +81,11 @@ export function EnquiryForm({
   defaultCountry = "",
   idPrefix = "enq",
 }: EnquiryFormProps) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const [website, setWebsite] = useState(""); // honeypot
+  const [state, setState] = useState<
+    { s: "idle" } | { s: "sending" } | { s: "done"; id: number } | { s: "error"; rate: boolean }
+  >({ s: "idle" });
   const [form, setForm] = useState({
     name: "",
     company: "",
@@ -84,8 +106,8 @@ export function EnquiryForm({
     return <LeadForm formId={formId!} title="Enquiry Form" formName="Enquiry Form" />;
   }
 
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
+  /** Email fallback when the backend can't be reached (e.g. the static GitHub Pages preview). */
+  const mailtoFallback = () => {
     const lines = [
       `${t(copy.name)}: ${form.name}`,
       `${t(copy.company)}: ${form.company}`,
@@ -105,11 +127,64 @@ export function EnquiryForm({
     const subject = t(isQuote ? copy.quoteSubject : copy.enquirySubject, {
       company: form.company || form.name,
     });
-    window.location.href = mailtoHref(subject, lines.join("\n"));
+    return mailtoHref(subject, lines.join("\n"));
   };
 
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setState({ s: "sending" });
+    try {
+      const res = await submitEnquiry({
+        data: {
+          kind: variant,
+          ...form,
+          lang,
+          sourcePage: window.location.pathname,
+          website,
+        },
+      });
+      setState({ s: "done", id: res.id });
+    } catch (error) {
+      setState({ s: "error", rate: String(error).includes("RATE_LIMITED") });
+    }
+  };
+
+  if (state.s === "done") {
+    return (
+      <div className="flex flex-col items-start gap-4 rounded-xl border border-green-200 bg-green-50 p-6 md:p-8">
+        <CheckCircle2 className="h-10 w-10 text-green-600" />
+        <h3 className="text-xl font-bold text-gray-900">{t(copy.successTitle)}</h3>
+        <p className="leading-relaxed text-gray-700">
+          {t(copy.successBody, { email: form.email, id: state.id })}
+        </p>
+        <button
+          type="button"
+          className="btn btn-outline-dark btn-sm"
+          onClick={() => {
+            setForm((prev) => ({ ...prev, message: "", volume: "" }));
+            setState({ s: "idle" });
+          }}
+        >
+          {t(copy.sendAnother)}
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+    <form onSubmit={handleSubmit} className="relative grid grid-cols-1 gap-5 sm:grid-cols-2">
+      {/* Honeypot: hidden from people, tempting for bots. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+        <label>
+          Website
+          <input
+            tabIndex={-1}
+            autoComplete="off"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+          />
+        </label>
+      </div>
       <div className="grid gap-2">
         <Label htmlFor={id("name")}>{t(copy.name)} *</Label>
         <Input
@@ -231,12 +306,31 @@ export function EnquiryForm({
           className="rounded-md border-gray-200 bg-white text-base focus-visible:border-primary focus-visible:ring-primary/30"
         />
       </div>
+      {state.s === "error" && (
+        <div
+          role="alert"
+          className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900 sm:col-span-2"
+        >
+          <p>
+            <b>{t(copy.errorTitle)}</b> {t(state.rate ? copy.errorRate : copy.errorBody)}
+          </p>
+          {!state.rate && (
+            <a href={mailtoFallback()} className="btn btn-outline-dark btn-sm self-start">
+              <Mail className="h-4 w-4" /> {t(copy.sendByEmail)}
+            </a>
+          )}
+        </div>
+      )}
       <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-gray-500">{t(copy.note)}</p>
-        <button type="submit" className="btn btn-primary">
-          {t(isQuote ? copy.sendQuote : copy.sendEnquiry)}
+        <button
+          type="submit"
+          className="btn btn-primary disabled:cursor-wait disabled:opacity-70"
+          disabled={state.s === "sending"}
+        >
+          {state.s === "sending" ? t(copy.sending) : t(isQuote ? copy.sendQuote : copy.sendEnquiry)}
           <span className="btn-arrow">
-            <Send />
+            {state.s === "sending" ? <Loader2 className="animate-spin" /> : <Send />}
           </span>
         </button>
       </div>
