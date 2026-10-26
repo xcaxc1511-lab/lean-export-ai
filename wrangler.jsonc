@@ -12,8 +12,7 @@
     {
       "binding": "DB",
       "database_name": "lean-export",
-      // Replace with the id printed by `npx wrangler d1 create lean-export`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "4c606fb5-d2c2-4862-8df8-ce7a7a857298",
     },
   ],
   // Non-secret settings. Sender must be on a domain verified in Resend.
