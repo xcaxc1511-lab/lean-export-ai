@@ -1,7 +1,8 @@
 import { clearSession, getSession, updateSession } from "@tanstack/react-start/server";
 import { getEnv, isProduction } from "./env";
 
-type AdminSession = { admin?: boolean; at?: number };
+/** `pw` is a fingerprint of the admin password, so changing the password logs out every session. */
+type AdminSession = { admin?: boolean; at?: number; pw?: string };
 
 const DEV_SECRET = "local-dev-only-session-secret-not-for-production-use";
 
@@ -34,10 +35,26 @@ async function safeEqual(a: string, b: string): Promise<boolean> {
   return diff === 0;
 }
 
+/** One-way fingerprint of the current admin password (never stores the password itself). */
+async function passwordFingerprint(): Promise<string | null> {
+  const password = getEnv("ADMIN_PASSWORD");
+  if (!password) return null;
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`${sessionConfig().password}:${password}`),
+  );
+  return Array.from(new Uint8Array(digest).slice(0, 16), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
 export async function isAdmin(): Promise<boolean> {
   try {
     const session = await getSession<AdminSession>(sessionConfig());
-    return session.data.admin === true;
+    if (session.data.admin !== true) return false;
+    // Sessions created before the password changed are no longer valid.
+    const current = await passwordFingerprint();
+    return current !== null && session.data.pw === current;
   } catch {
     return false;
   }
@@ -58,7 +75,11 @@ export async function loginAdmin(password: string): Promise<boolean> {
     await new Promise((r) => setTimeout(r, 600));
     return false;
   }
-  await updateSession<AdminSession>(sessionConfig(), { admin: true, at: Date.now() });
+  await updateSession<AdminSession>(sessionConfig(), {
+    admin: true,
+    at: Date.now(),
+    pw: (await passwordFingerprint()) ?? "",
+  });
   return true;
 }
 
