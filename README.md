@@ -20,11 +20,20 @@ npm run dev
 - React
 - Tailwind CSS
 
-## GitHub Pages
+## Deployment
 
-Every push to `main` builds a static, prerendered copy of the site and deploys it to
-GitHub Pages (see `.github/workflows/deploy-pages.yml`). To build it locally:
+Live site (frontend + backend + D1): https://lean-export.daotaoleandigi.workers.dev
+
+Every push to `main` builds and deploys to Cloudflare Workers via
+`.github/workflows/deploy-cloudflare.yml` (needs the `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` repository secrets). Manual deploy:
 
 ```sh
-GITHUB_PAGES_BASE=/lean-export-ai npx vite build   # output: dist/client
+npm run build:cf
+npm run deploy:cf
 ```
+
+See `DEPLOY.md` (Vietnamese) for first-time setup, secrets and backups.
+
+A static, backend-less preview can still be built with
+`GITHUB_PAGES_BASE=/<repo> npx vite build` (output: `dist/client`), but it is no longer published.

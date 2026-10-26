@@ -1,8 +1,9 @@
 # Triển khai backend Lean Export lên Cloudflare
 
-Website chạy đầy đủ (giao diện + backend + cơ sở dữ liệu) trên **Cloudflare Workers + D1**.
-Bản GitHub Pages hiện tại vẫn hoạt động nhưng chỉ là bản tĩnh để xem trước: form sẽ tự chuyển
-sang gửi qua email, trang `/admin` và Tin tức mới không dùng được ở đó.
+Website chạy đầy đủ (giao diện + backend + cơ sở dữ liệu) trên **Cloudflare Workers + D1**:
+**https://lean-export.daotaoleandigi.workers.dev** (quản trị: `/admin`).
+Tài khoản Cloudflare: daotaoleandigi@gmail.com · cơ sở dữ liệu D1: `lean-export` (APAC).
+GitHub Pages đã được tắt — chỉ dùng bản Cloudflare.
 
 ## Backend gồm những gì
 
