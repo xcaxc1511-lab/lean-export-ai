@@ -1,8 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Download, Inbox, Loader2, Mail, Search, Trash2 } from "lucide-react";
+import { z } from "zod";
+import {
+  ArrowDownUp,
+  ChevronDown,
+  ChevronsUpDown,
+  ChevronUp,
+  Download,
+  Inbox,
+  Loader2,
+  Mail,
+  Search,
+  Trash2,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { AdminSubbar, AdminTopbar, Avatar } from "@/components/admin/AdminShell";
 import {
   ENQUIRY_STATUSES,
   deleteEnquiry,
@@ -12,7 +31,17 @@ import {
   type EnquiryStatus,
 } from "@/functions/enquiries";
 
+const searchSchema = z.object({
+  status: z
+    .enum(["all", ...ENQUIRY_STATUSES])
+    .optional()
+    .catch(undefined),
+  kind: z.enum(["all", "contact", "quote"]).optional().catch(undefined),
+  q: z.string().optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/admin/")({
+  validateSearch: (search) => searchSchema.parse(search),
   component: EnquiriesPage,
 });
 
@@ -25,128 +54,142 @@ const STATUS_LABEL: Record<EnquiryStatus, string> = {
   spam: "Spam",
 };
 
-/** Fill darkens as an enquiry moves down the pipeline: gold → navy. */
 const STATUS_STYLE: Record<EnquiryStatus, string> = {
-  new: "bg-primary text-admin-ink",
-  contacted: "bg-accent text-admin-ink ring-1 ring-inset ring-primary",
-  quoted: "bg-white text-admin-ink ring-1 ring-inset ring-admin-ink/35",
-  won: "bg-brand-ink text-white",
-  lost: "bg-admin-row text-admin-dim",
-  spam: "bg-red-50 text-red-700",
-};
-
-/** The sales pipeline, in order. `lost` and `spam` are exits, listed separately. */
-const PIPELINE = ["new", "contacted", "quoted", "won"] as const;
-const PIPELINE_BAR: Record<(typeof PIPELINE)[number], string> = {
-  new: "bg-primary",
-  contacted: "bg-primary/45",
-  quoted: "bg-admin-ink/35",
-  won: "bg-brand-ink",
+  new: "bg-[#eff4ff] text-[#004eeb] ring-[#b2ccff]",
+  contacted: "bg-[#fffaeb] text-[#b54708] ring-[#fedf89]",
+  quoted: "bg-[#f4f3ff] text-[#5925dc] ring-[#d9d6fe]",
+  won: "bg-[#ecfdf3] text-[#067647] ring-[#abefc6]",
+  lost: "bg-[#f9fafb] text-[#475467] ring-[#eaecf0]",
+  spam: "bg-[#fef3f2] text-[#b42318] ring-[#fecdca]",
 };
 
 type StatusFilter = "all" | EnquiryStatus;
 type KindFilter = "all" | "contact" | "quote";
+type SortKey = "created" | "name" | "country" | "product" | "status";
+type Sort = { key: SortKey; dir: "asc" | "desc" };
 
 const KINDS: { value: KindFilter; label: string }[] = [
-  { value: "all", label: "Tất cả" },
+  { value: "all", label: "Tất cả yêu cầu" },
   { value: "quote", label: "Báo giá" },
   { value: "contact", label: "Liên hệ" },
 ];
 
-const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+const SORT_PRESETS: { label: string; sort: Sort }[] = [
+  { label: "Mới nhất", sort: { key: "created", dir: "desc" } },
+  { label: "Cũ nhất", sort: { key: "created", dir: "asc" } },
+  { label: "Tên A–Z", sort: { key: "name", dir: "asc" } },
+];
 
-function StatusBadge({ status }: { status: EnquiryStatus }) {
+const PAGE_SIZES = [20, 50, 100];
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const displayName = (e: Enquiry) => e.company || e.name;
+
+function sortValue(e: Enquiry, key: SortKey): string | number {
+  switch (key) {
+    case "created":
+      return e.created_at;
+    case "name":
+      return displayName(e).toLowerCase();
+    case "country":
+      return (e.country ?? "").toLowerCase();
+    case "product":
+      return (e.product ?? "").toLowerCase();
+    case "status":
+      return ENQUIRY_STATUSES.indexOf(e.status);
+  }
+}
+
+function StatusTag({ status }: { status: EnquiryStatus }) {
   return (
     <span
-      className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS_STYLE[status]}`}
+      className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${STATUS_STYLE[status]}`}
     >
       {STATUS_LABEL[status]}
     </span>
   );
 }
 
-function Pipeline({
-  counts,
-  total,
-  status,
-  onChange,
+function SortHeader({
+  label,
+  k,
+  sort,
+  onSort,
 }: {
-  counts: Record<string, number>;
-  total: number;
-  status: StatusFilter;
-  onChange: (s: StatusFilter) => void;
+  label: string;
+  k: SortKey;
+  sort: Sort;
+  onSort: (k: SortKey) => void;
 }) {
-  const exits: [StatusFilter, string, number][] = [
-    ["all", "Tất cả", total],
-    ["lost", STATUS_LABEL.lost, counts["lost"] ?? 0],
-    ["spam", STATUS_LABEL.spam, counts["spam"] ?? 0],
-  ];
+  const active = sort.key === k;
+  const Icon = !active ? ChevronsUpDown : sort.dir === "asc" ? ChevronUp : ChevronDown;
   return (
-    <div className="admin-panel mb-6 overflow-hidden">
-      <div className="grid grid-cols-2 md:grid-cols-4">
-        {PIPELINE.map((s, i) => (
-          <button
-            key={s}
-            type="button"
-            aria-pressed={status === s}
-            onClick={() => onChange(status === s ? "all" : s)}
-            className={`group relative flex flex-col gap-2 border-admin-line px-5 pb-6 pt-5 text-left transition-colors md:px-6 ${
-              i % 2 === 1 ? "border-l" : ""
-            } ${i >= 2 ? "border-t md:border-t-0" : ""} ${i === 2 ? "md:border-l" : ""} ${
-              status === s ? "bg-accent" : "hover:bg-admin-row"
-            }`}
-          >
-            <span className="flex items-center gap-1.5 text-sm font-medium text-admin-muted">
-              {STATUS_LABEL[s]}
-              {i < PIPELINE.length - 1 && (
-                <ChevronRight className="hidden h-4 w-4 text-admin-dim/70 md:inline" />
-              )}
-            </span>
-            <span className="text-4xl font-bold leading-none tabular-nums text-admin-ink">
-              {counts[s] ?? 0}
-            </span>
-            <span
-              className={`absolute inset-x-0 bottom-0 h-1 transition-opacity ${PIPELINE_BAR[s]} ${
-                status === s ? "opacity-100" : "opacity-0 group-hover:opacity-60"
-              }`}
-            />
-          </button>
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-admin-line bg-admin-row/60 px-5 py-2.5 text-sm md:px-6">
-        {exits.map(([s, label, n]) => (
-          <button
-            key={s}
-            type="button"
-            aria-pressed={status === s}
-            onClick={() => onChange(s)}
-            className={`py-1 transition-colors ${
-              status === s
-                ? "font-bold text-admin-ink underline decoration-primary decoration-2 underline-offset-[6px]"
-                : "text-admin-muted hover:text-admin-ink"
-            }`}
-          >
-            {label} <span className="tabular-nums text-admin-dim">{n}</span>
-          </button>
-        ))}
-      </div>
-    </div>
+    <th aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}>
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className="flex w-full items-center justify-between gap-2 font-semibold"
+      >
+        {label}
+        <Icon className={`h-4 w-4 ${active ? "text-admin-ink" : "text-admin-dim"}`} />
+      </button>
+    </th>
   );
 }
 
 function EnquiriesPage() {
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [kind, setKind] = useState<KindFilter>("all");
-  const [search, setSearch] = useState("");
-  const [q, setQ] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const status: StatusFilter = search.status ?? "all";
+  const kind: KindFilter = search.kind ?? "all";
+  const q = search.q ?? "";
 
-  // Debounce the search box.
+  const [term, setTerm] = useState(q);
+  const [sort, setSort] = useState<Sort>({ key: "created", dir: "desc" });
+  const [pageSize, setPageSize] = useState(20);
+  const [page, setPage] = useState(1);
+  const [checked, setChecked] = useState<Set<number>>(new Set());
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const qc = useQueryClient();
+
+  const setFilter = (next: { status?: StatusFilter; kind?: KindFilter; q?: string }) =>
+    navigate({
+      search: (prev) => {
+        const merged = { ...prev, ...next };
+        return {
+          status: merged.status === "all" ? undefined : merged.status,
+          kind: merged.kind === "all" ? undefined : merged.kind,
+          q: merged.q ? merged.q : undefined,
+        };
+      },
+      replace: true,
+    });
+
+  // Keep the box in sync when the sidebar search changes the URL.
+  useEffect(() => setTerm(q), [q]);
+
+  // Debounce typing into the URL.
   useEffect(() => {
-    const id = setTimeout(() => setQ(search.trim()), 300);
+    const value = term.trim();
+    if (value === q) return;
+    const id = setTimeout(() => void setFilter({ q: value }), 300);
     return () => clearTimeout(id);
-  }, [search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [term]);
+
+  // New filter → back to page 1, clear the selection.
+  useEffect(() => {
+    setPage(1);
+    setChecked(new Set());
+  }, [status, kind, q, pageSize]);
 
   const filters = { status, kind, q };
   const query = useQuery({
@@ -155,151 +198,336 @@ function EnquiriesPage() {
     placeholderData: keepPreviousData,
   });
 
-  const rows = query.data?.rows ?? [];
+  const rows = useMemo(() => query.data?.rows ?? [], [query.data]);
   const counts = query.data?.counts ?? {};
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  const sorted = useMemo(() => {
+    const dir = sort.dir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const va = sortValue(a, sort.key);
+      const vb = sortValue(b, sort.key);
+      return (va < vb ? -1 : va > vb ? 1 : 0) * dir;
+    });
+  }, [rows, sort]);
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visible = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const selected = rows.find((r) => r.id === selectedId) ?? null;
   const csvHref = `${import.meta.env.BASE_URL}api/admin/enquiries.csv?${new URLSearchParams(filters)}`;
   const filtered = status !== "all" || kind !== "all" || q !== "";
 
-  const clearFilters = () => {
-    setStatus("all");
-    setKind("all");
-    setSearch("");
-  };
+  const onSort = (key: SortKey) =>
+    setSort((s) =>
+      s.key === key
+        ? { key, dir: s.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: key === "created" ? "desc" : "asc" },
+    );
+
+  const allOnPage = visible.length > 0 && visible.every((r) => checked.has(r.id));
+  const togglePage = () =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      for (const r of visible) {
+        if (allOnPage) next.delete(r.id);
+        else next.add(r.id);
+      }
+      return next;
+    });
+  const toggleOne = (id: number) =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const bulk = useMutation({
+    mutationFn: async (action: { status: EnquiryStatus } | { remove: true }) => {
+      const ids = [...checked];
+      await Promise.all(
+        ids.map((id) =>
+          "remove" in action
+            ? deleteEnquiry({ data: { id } })
+            : updateEnquiry({ data: { id, status: action.status } }),
+        ),
+      );
+    },
+    onSuccess: async () => {
+      setChecked(new Set());
+      await qc.invalidateQueries({ queryKey: ["enquiries"] });
+    },
+  });
+
+  const statusTabs: [StatusFilter, string, number][] = [
+    ["all", "Tất cả", total],
+    ...ENQUIRY_STATUSES.map(
+      (s) => [s, STATUS_LABEL[s], counts[s] ?? 0] as [StatusFilter, string, number],
+    ),
+  ];
 
   return (
-    <div>
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-[2rem] font-bold leading-tight text-admin-ink">Yêu cầu báo giá</h1>
-          <p className="mt-1 text-admin-muted">
-            Mọi yêu cầu gửi từ form trên website. Bấm vào một dòng để xem và cập nhật.
-          </p>
-        </div>
-        <a href={csvHref} className="btn btn-outline-dark btn-sm self-start md:self-auto">
-          <Download className="h-4 w-4" /> Xuất CSV
-        </a>
-      </div>
+    <>
+      <AdminTopbar
+        title="Yêu cầu báo giá"
+        tabs={KINDS.map((k) => (
+          <button
+            key={k.value}
+            type="button"
+            className="admin-tab"
+            aria-current={kind === k.value ? "page" : undefined}
+            onClick={() => void setFilter({ kind: k.value })}
+          >
+            {k.label}
+          </button>
+        ))}
+      />
+      <AdminSubbar
+        tabs={statusTabs.map(([s, label, n]) => (
+          <button
+            key={s}
+            type="button"
+            className="admin-subtab"
+            aria-current={status === s ? "page" : undefined}
+            onClick={() => void setFilter({ status: s })}
+          >
+            {label}
+            <span className="rounded-full bg-admin-canvas px-1.5 text-xs font-medium tabular-nums text-admin-muted">
+              {n}
+            </span>
+          </button>
+        ))}
+        actions={
+          <a href={csvHref} className="admin-btn admin-btn-primary">
+            <Download className="h-4 w-4" /> Xuất CSV
+          </a>
+        }
+      />
 
-      <Pipeline counts={counts} total={total} status={status} onChange={setStatus} />
-
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <label className="relative flex-1">
-          <span className="sr-only">Tìm kiếm</span>
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-admin-dim" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo tên, công ty, email, quốc gia, sản phẩm…"
-            className="admin-input pl-10 text-sm"
-          />
-        </label>
-        <div
-          role="group"
-          aria-label="Loại yêu cầu"
-          className="flex shrink-0 gap-1 self-start rounded-full bg-admin-row p-1 ring-1 ring-inset ring-admin-line sm:self-auto"
-        >
-          {KINDS.map((k) => (
-            <button
-              key={k.value}
-              type="button"
-              aria-pressed={kind === k.value}
-              onClick={() => setKind(k.value)}
-              className="admin-segment"
-            >
-              {k.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="admin-panel overflow-hidden">
-        {query.isLoading ? (
-          <div className="flex items-center justify-center gap-2 p-16 text-admin-muted">
-            <Loader2 className="h-5 w-5 animate-spin" /> Đang tải…
-          </div>
-        ) : query.isError ? (
-          <p className="p-12 text-center text-red-600">
-            Không tải được dữ liệu. Tải lại trang để thử lần nữa.
-          </p>
-        ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
-            <Inbox className="mb-2 h-8 w-8 text-admin-dim" />
-            {filtered ? (
+      <div className="flex-1 p-4 lg:p-6">
+        <div className="admin-card">
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center gap-3 p-4">
+            {checked.size > 0 ? (
               <>
-                <p className="font-bold text-admin-ink">Không có yêu cầu nào khớp bộ lọc</p>
+                <span className="rounded-full bg-admin-blue-soft px-4 py-2 text-sm font-medium text-admin-blue">
+                  Đã chọn {checked.size}
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="admin-pill" disabled={bulk.isPending}>
+                    Đổi trạng thái <ChevronDown className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {ENQUIRY_STATUSES.map((s) => (
+                      <DropdownMenuItem key={s} onSelect={() => bulk.mutate({ status: s })}>
+                        <StatusTag status={s} />
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <button
                   type="button"
-                  onClick={clearFilters}
-                  className="text-sm text-admin-muted underline underline-offset-4 hover:text-admin-ink"
+                  className="admin-pill text-[#b42318]"
+                  disabled={bulk.isPending}
+                  onClick={() => {
+                    if (window.confirm(`Xóa vĩnh viễn ${checked.size} yêu cầu đã chọn?`))
+                      bulk.mutate({ remove: true });
+                  }}
                 >
-                  Xóa bộ lọc
+                  <Trash2 className="h-4 w-4" /> Xóa
                 </button>
+                <button
+                  type="button"
+                  className="text-sm font-medium text-admin-muted hover:text-admin-ink"
+                  onClick={() => setChecked(new Set())}
+                >
+                  Bỏ chọn
+                </button>
+                {bulk.isPending && <Loader2 className="h-4 w-4 animate-spin text-admin-dim" />}
               </>
             ) : (
               <>
-                <p className="font-bold text-admin-ink">Chưa có yêu cầu nào</p>
-                <p className="max-w-sm text-sm text-admin-muted">
-                  Khi khách gửi form Liên hệ hoặc Báo giá trên website, yêu cầu sẽ hiện ở đây.
-                </p>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="admin-pill">
+                    <ArrowDownUp className="h-4 w-4" /> Sắp xếp
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {SORT_PRESETS.map((p) => (
+                      <DropdownMenuItem key={p.label} onSelect={() => setSort(p.sort)}>
+                        {p.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <span className="rounded-full bg-admin-blue-soft px-4 py-2 text-sm font-medium text-admin-blue">
+                  {rows.length.toLocaleString("vi-VN")} yêu cầu
+                </span>
               </>
             )}
+            <label className="relative ml-auto w-full sm:w-80">
+              <span className="sr-only">Tìm yêu cầu</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-admin-dim" />
+              <input
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                placeholder="Tìm tên, công ty, email, quốc gia…"
+                className="admin-input pl-9"
+              />
+            </label>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="border-b border-admin-line text-[13px] text-admin-dim">
-                <tr>
-                  <th className="py-3.5 pl-6 pr-3 font-medium">#</th>
-                  <th className="px-3 py-3.5 font-medium">Khách hàng</th>
-                  <th className="px-3 py-3.5 font-medium">Quốc gia</th>
-                  <th className="px-3 py-3.5 font-medium">Sản phẩm</th>
-                  <th className="px-3 py-3.5 font-medium">Loại</th>
-                  <th className="px-3 py-3.5 font-medium">Nhận lúc</th>
-                  <th className="py-3.5 pl-3 pr-6 font-medium">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.id}
-                    onClick={() => setSelectedId(r.id)}
-                    className="cursor-pointer border-b border-admin-line last:border-0 hover:bg-accent/60"
-                  >
-                    <td className="py-4 pl-6 pr-3 tabular-nums text-admin-dim">{r.id}</td>
-                    <td className="px-3 py-4">
-                      {/* Real button so the row is reachable by keyboard. */}
-                      <button
-                        type="button"
-                        className={`text-left text-admin-ink ${
-                          r.status === "new" ? "font-bold" : "font-medium"
-                        }`}
-                      >
-                        {r.company || r.name}
-                      </button>
-                      <div className="text-xs text-admin-muted">
-                        {r.company ? `${r.name}, ` : ""}
-                        {r.email}
-                      </div>
-                    </td>
-                    <td className="px-3 py-4 text-admin-muted">{r.country || "—"}</td>
-                    <td className="px-3 py-4 text-admin-muted">{r.product || "—"}</td>
-                    <td className="px-3 py-4 text-admin-muted">
-                      {r.kind === "quote" ? "Báo giá" : "Liên hệ"}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-4 tabular-nums text-admin-muted">
-                      {fmtDate(r.created_at)}
-                    </td>
-                    <td className="py-4 pl-3 pr-6">
-                      <StatusBadge status={r.status} />
-                    </td>
-                  </tr>
+
+          {/* Table */}
+          <div className="mx-4 overflow-hidden rounded-lg border border-admin-line">
+            {query.isLoading ? (
+              <div className="flex items-center justify-center gap-2 p-16 text-sm text-admin-dim">
+                <Loader2 className="h-5 w-5 animate-spin" /> Đang tải…
+              </div>
+            ) : query.isError ? (
+              <p className="p-12 text-center text-sm text-[#b42318]">
+                Không tải được dữ liệu. Tải lại trang để thử lần nữa.
+              </p>
+            ) : rows.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
+                <span className="mb-2 inline-flex h-12 w-12 items-center justify-center rounded-full bg-admin-canvas">
+                  <Inbox className="h-6 w-6 text-admin-dim" />
+                </span>
+                {filtered ? (
+                  <>
+                    <p className="font-semibold text-admin-ink">Không có yêu cầu nào khớp bộ lọc</p>
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-secondary mt-2"
+                      onClick={() => void setFilter({ status: "all", kind: "all", q: "" })}
+                    >
+                      Xóa bộ lọc
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-admin-ink">Chưa có yêu cầu nào</p>
+                    <p className="max-w-sm text-sm text-admin-dim">
+                      Khi khách gửi form Liên hệ hoặc Báo giá trên website, yêu cầu sẽ hiện ở đây.
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="admin-table w-full min-w-[980px]">
+                  <thead>
+                    <tr>
+                      <th className="w-12">
+                        <input
+                          type="checkbox"
+                          className="admin-check align-middle"
+                          checked={allOnPage}
+                          onChange={togglePage}
+                          aria-label="Chọn tất cả trên trang"
+                        />
+                      </th>
+                      <SortHeader label="Khách hàng" k="name" sort={sort} onSort={onSort} />
+                      <th>Email</th>
+                      <SortHeader label="Quốc gia" k="country" sort={sort} onSort={onSort} />
+                      <SortHeader label="Sản phẩm" k="product" sort={sort} onSort={onSort} />
+                      <SortHeader label="Nhận lúc" k="created" sort={sort} onSort={onSort} />
+                      <SortHeader label="Trạng thái" k="status" sort={sort} onSort={onSort} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visible.map((r) => (
+                      <tr key={r.id} onClick={() => setSelectedId(r.id)} className="cursor-pointer">
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="admin-check align-middle"
+                            checked={checked.has(r.id)}
+                            onChange={() => toggleOne(r.id)}
+                            aria-label={`Chọn yêu cầu #${r.id}`}
+                          />
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-3">
+                            <Avatar name={r.name} />
+                            {/* Real button so each row is reachable by keyboard. */}
+                            <span className="min-w-0 leading-tight">
+                              <button
+                                type="button"
+                                className={`block max-w-[200px] truncate text-left text-admin-ink ${
+                                  r.status === "new" ? "font-semibold" : ""
+                                }`}
+                              >
+                                {displayName(r)}
+                              </button>
+                              <span className="text-xs text-admin-dim">
+                                {r.kind === "quote" ? "Yêu cầu báo giá" : "Liên hệ"}
+                              </span>
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="flex max-w-[200px] items-center gap-2">
+                            <Mail className="h-4 w-4 shrink-0 text-admin-dim" />
+                            <span className="truncate">{r.email}</span>
+                          </span>
+                        </td>
+                        <td className="max-w-[180px] truncate">{r.country || "—"}</td>
+                        <td className="max-w-[180px] truncate">{r.product || "—"}</td>
+                        <td className="whitespace-nowrap tabular-nums">{fmtDate(r.created_at)}</td>
+                        <td>
+                          <StatusTag status={r.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <span className="text-sm text-admin-text">
+              Trang {currentPage} / {pageCount}
+            </span>
+            <div className="flex items-center gap-2">
+              <label className="sr-only" htmlFor="page-size">
+                Số dòng mỗi trang
+              </label>
+              <select
+                id="page-size"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="admin-input w-20 px-3"
+              >
+                {PAGE_SIZES.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+              <button
+                type="button"
+                className="admin-btn admin-btn-secondary"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(currentPage - 1)}
+              >
+                Trước
+              </button>
+              <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-admin-blue px-3 text-sm font-semibold text-admin-blue">
+                {currentPage}
+              </span>
+              <button
+                type="button"
+                className="admin-btn admin-btn-secondary"
+                disabled={currentPage >= pageCount}
+                onClick={() => setPage(currentPage + 1)}
+              >
+                Sau
+              </button>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       <Sheet open={selected !== null} onOpenChange={(open) => !open && setSelectedId(null)}>
@@ -313,7 +541,7 @@ function EnquiriesPage() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </>
   );
 }
 
@@ -357,27 +585,29 @@ function EnquiryDetail({ enquiry: e, onDone }: { enquiry: Enquiry; onDone: () =>
 
   return (
     <div className="flex min-h-full flex-col">
-      <div className="border-b border-admin-line bg-admin-canvas px-6 pb-6 pt-8">
-        <div className="mb-3 flex items-center gap-2 text-sm text-admin-dim">
-          <span className="tabular-nums">#{e.id}</span>
-          <StatusBadge status={e.status} />
+      <div className="flex items-start gap-4 border-b border-admin-line px-6 pb-6 pt-8">
+        <Avatar name={e.name} size="lg" />
+        <div className="min-w-0">
+          <SheetTitle className="truncate text-xl font-semibold text-admin-ink">
+            {displayName(e)}
+          </SheetTitle>
+          <SheetDescription className="mt-0.5 text-sm text-admin-dim">
+            #{e.id} · {e.kind === "quote" ? "Yêu cầu báo giá" : "Liên hệ"} · {fmtDate(e.created_at)}
+          </SheetDescription>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <StatusTag status={e.status} />
+            <a
+              href={`mailto:${e.email}?subject=${replySubject}`}
+              className="admin-btn admin-btn-primary h-9 px-3"
+            >
+              <Mail className="h-4 w-4" /> Trả lời qua email
+            </a>
+          </div>
         </div>
-        <SheetTitle className="text-2xl font-bold leading-tight text-admin-ink">
-          {e.company || e.name}
-        </SheetTitle>
-        <SheetDescription className="mt-1 text-admin-muted">
-          {e.kind === "quote" ? "Yêu cầu báo giá" : "Liên hệ"}, nhận lúc {fmtDate(e.created_at)}
-        </SheetDescription>
-        <a
-          href={`mailto:${e.email}?subject=${replySubject}`}
-          className="btn btn-primary btn-sm mt-5"
-        >
-          <Mail className="h-4 w-4" /> Trả lời qua email
-        </a>
       </div>
 
       <div className="grid gap-6 px-6 py-6">
-        <dl className="grid grid-cols-[minmax(0,9rem)_1fr] gap-x-4 gap-y-2.5 text-sm">
+        <dl className="grid grid-cols-[minmax(0,9rem)_1fr] gap-x-4 gap-y-3 text-sm">
           {fields
             .filter(([, v]) => v)
             .map(([k, v]) => (
@@ -391,14 +621,14 @@ function EnquiryDetail({ enquiry: e, onDone }: { enquiry: Enquiry; onDone: () =>
         {e.message && (
           <div>
             <p className="mb-2 text-sm text-admin-dim">Nội dung</p>
-            <p className="whitespace-pre-wrap rounded-2xl bg-admin-row p-4 text-sm leading-relaxed text-admin-ink">
+            <p className="whitespace-pre-wrap rounded-lg border border-admin-line bg-admin-row p-4 text-sm leading-relaxed text-admin-ink">
               {e.message}
             </p>
           </div>
         )}
       </div>
 
-      <div className="mt-auto grid gap-4 border-t border-admin-line px-6 py-6">
+      <div className="mt-auto grid gap-4 border-t border-admin-line bg-admin-row px-6 py-6">
         <label className="admin-label">
           Trạng thái
           <select
@@ -426,16 +656,16 @@ function EnquiryDetail({ enquiry: e, onDone }: { enquiry: Enquiry; onDone: () =>
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="btn btn-dark btn-sm"
+            className="admin-btn admin-btn-primary"
             disabled={save.isPending}
             onClick={() => save.mutate()}
           >
             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu thay đổi"}
           </button>
-          {save.isSuccess && <span className="text-sm text-green-700">Đã lưu thay đổi</span>}
+          {save.isSuccess && <span className="text-sm text-[#067647]">Đã lưu thay đổi</span>}
           <button
             type="button"
-            className="ml-auto flex items-center gap-1.5 text-sm text-red-600 hover:underline"
+            className="admin-btn admin-btn-danger ml-auto"
             disabled={remove.isPending}
             onClick={() => {
               if (window.confirm(`Xóa vĩnh viễn yêu cầu #${e.id}?`)) remove.mutate();

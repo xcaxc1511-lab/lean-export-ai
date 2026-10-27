@@ -49,13 +49,21 @@
   --color-brand-ink-3: #262c47;
   --color-brand-line: #2f334a;
   --color-brand-footer: #111319;
-  /* Leandigi light UI (leandigi.vn) — used by the admin workspace. */
-  --color-admin-canvas: #fafafa;
-  --color-admin-ink: #17130b;
-  --color-admin-muted: #5e594f;
-  --color-admin-dim: #8b8578;
-  --color-admin-line: rgba(23, 19, 11, 0.1);
-  --color-admin-row: #f7f7f4;
+  /* Admin workspace — mirrors the GoHighLevel (LeadConnector) app the team uses daily. */
+  --color-admin-canvas: #f2f4f7;
+  --color-admin-ink: #101828;
+  --color-admin-text: #344054;
+  --color-admin-muted: #475467;
+  --color-admin-dim: #667085;
+  --color-admin-line: #eaecf0;
+  --color-admin-field: #d0d5dd;
+  --color-admin-row: #f9fafb;
+  --color-admin-blue: #155eef;
+  --color-admin-blue-dark: #004eeb;
+  --color-admin-blue-soft: #eff4ff;
+  --color-admin-side: #1d2026;
+  --color-admin-side-2: #2a2e35;
+  --color-admin-side-line: #3a3f48;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   @keyframes accordion-down {
@@ -494,69 +502,117 @@
 }
 
 /*
- * Admin workspace — Leandigi light UI (leandigi.vn): #fafafa canvas, warm ink,
- * white panels, gold-tinted active rows like the site's dropdown menu.
+ * Admin workspace — GoHighLevel-style app shell (dark sidebar, white top bar,
+ * grey canvas, blue primary actions) so it feels like the CRM the team uses.
  */
 @layer components {
-  .admin-panel {
+  .admin-card {
     background: #fff;
     border: 1px solid var(--color-admin-line);
-    border-radius: 20px;
-    box-shadow: 0 12px 32px rgba(19, 24, 44, 0.04);
-  }
-  .admin-nav-link {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 44px;
-    padding: 0 14px 0 22px;
     border-radius: 12px;
-    color: var(--color-admin-muted);
-    font-size: 15px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  }
+  .admin-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
     transition:
-      background 0.2s,
-      color 0.2s;
+      background 0.15s,
+      border-color 0.15s,
+      color 0.15s;
   }
-  .admin-nav-link:hover {
+  .admin-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .admin-btn-primary {
+    background: var(--color-admin-blue);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  }
+  .admin-btn-primary:hover:not(:disabled) {
+    background: var(--color-admin-blue-dark);
+  }
+  .admin-btn-secondary {
+    background: #fff;
+    border: 1px solid var(--color-admin-field);
+    color: var(--color-admin-text);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  }
+  .admin-btn-secondary:hover:not(:disabled) {
     background: var(--color-admin-row);
     color: var(--color-admin-ink);
   }
-  .admin-nav-link[data-status="active"] {
-    background: #fdf6de;
-    color: var(--color-admin-ink);
-    font-weight: 700;
+  .admin-btn-danger {
+    background: #fff;
+    border: 1px solid #fecdca;
+    color: #b42318;
   }
-  .admin-nav-link[data-status="active"]::before {
-    content: "";
-    position: absolute;
-    left: 9px;
-    top: 50%;
-    width: 3.5px;
-    height: 18px;
+  .admin-btn-danger:hover:not(:disabled) {
+    background: #fef3f2;
+  }
+  .admin-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--color-admin-field);
+    background: #fff;
+    color: var(--color-admin-text);
+  }
+  .admin-icon-btn:hover {
+    background: var(--color-admin-row);
+  }
+  /* Toolbar pill ("Filters", "Sort" in GHL). */
+  .admin-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 16px;
     border-radius: 999px;
-    background: #f5cf5a;
-    transform: translateY(-50%);
+    border: 1px solid var(--color-admin-line);
+    background: #fff;
+    color: var(--color-admin-text);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .admin-pill:hover {
+    background: var(--color-admin-row);
   }
   .admin-input {
-    height: 44px;
+    height: 40px;
     width: 100%;
-    border: 1px solid rgba(23, 19, 11, 0.14);
-    border-radius: 12px;
+    border: 1px solid var(--color-admin-field);
+    border-radius: 8px;
     background: #fff;
-    padding: 0 14px;
+    padding: 0 12px;
     color: var(--color-admin-ink);
+    font-size: 14px;
     font-weight: 400;
     outline: none;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
     transition:
-      border-color 0.2s,
-      box-shadow 0.2s;
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+  .admin-input::placeholder {
+    color: var(--color-admin-dim);
   }
   .admin-input:focus {
-    border-color: #f5cf5a;
-    box-shadow: 0 0 0 3px rgba(245, 207, 90, 0.35);
+    border-color: #84adff;
+    box-shadow:
+      0 1px 2px rgba(16, 24, 40, 0.05),
+      0 0 0 4px rgba(21, 94, 239, 0.12);
   }
   textarea.admin-input {
     height: auto;
@@ -565,7 +621,7 @@
   .admin-label {
     display: grid;
     gap: 6px;
-    color: var(--color-admin-ink);
+    color: var(--color-admin-text);
     font-size: 14px;
     font-weight: 500;
   }
@@ -574,39 +630,123 @@
     font-size: 12px;
     font-weight: 400;
   }
-  .admin-segment {
-    border-radius: 999px;
-    padding: 6px 16px;
+  /* Module tabs in the top bar — gold underline, as in the team's GHL theme. */
+  .admin-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 2px;
+    color: var(--color-admin-muted);
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .admin-tab:hover {
+    color: var(--color-admin-ink);
+  }
+  .admin-tab[aria-current="page"] {
+    color: var(--color-admin-ink);
+    font-weight: 600;
+  }
+  .admin-tab[aria-current="page"]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: #f5cf5a;
+  }
+  /* Smart-list tabs under the top bar — blue underline. */
+  .admin-subtab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    padding: 0 16px;
     color: var(--color-admin-muted);
     font-size: 14px;
     font-weight: 500;
-    transition:
-      background 0.2s,
-      color 0.2s;
+    white-space: nowrap;
   }
-  .admin-segment:hover {
+  .admin-subtab:hover {
     color: var(--color-admin-ink);
   }
-  .admin-segment[aria-pressed="true"] {
-    background: #fff;
-    color: var(--color-admin-ink);
-    font-weight: 700;
-    box-shadow: 0 1px 3px rgba(19, 24, 44, 0.12);
+  .admin-subtab[aria-current="page"] {
+    color: var(--color-admin-blue);
+    font-weight: 600;
   }
-  /* Concentric rings from the leandigi.vn hero, used behind the login card. */
-  .admin-rings {
+  .admin-subtab[aria-current="page"]::after {
+    content: "";
     position: absolute;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: var(--color-admin-blue);
   }
-  .admin-rings span {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    border: 1px solid rgba(23, 19, 11, 0.12);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
+  .admin-side-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: 8px;
+    color: #e4e7ec;
+    font-size: 15px;
+    font-weight: 400;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .admin-side-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .admin-side-link[data-status="active"] {
+    background: var(--color-admin-side-2);
+    color: #fff;
+    font-weight: 500;
+  }
+  .admin-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .admin-table th {
+    height: 44px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--color-admin-line);
+    background: var(--color-admin-row);
+    color: var(--color-admin-text);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .admin-table td {
+    height: 52px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--color-admin-line);
+    color: var(--color-admin-text);
+    font-size: 14px;
+  }
+  .admin-table :is(th, td) + :is(th, td) {
+    border-left: 1px solid var(--color-admin-line);
+  }
+  .admin-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .admin-table tbody tr:hover td {
+    background: var(--color-admin-row);
+  }
+  .admin-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    accent-color: var(--color-admin-blue);
+    cursor: pointer;
   }
 }
 
