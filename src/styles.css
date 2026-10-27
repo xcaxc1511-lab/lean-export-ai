@@ -49,6 +49,13 @@
   --color-brand-ink-3: #262c47;
   --color-brand-line: #2f334a;
   --color-brand-footer: #111319;
+  /* Leandigi light UI (leandigi.vn) — used by the admin workspace. */
+  --color-admin-canvas: #fafafa;
+  --color-admin-ink: #17130b;
+  --color-admin-muted: #5e594f;
+  --color-admin-dim: #8b8578;
+  --color-admin-line: rgba(23, 19, 11, 0.1);
+  --color-admin-row: #f7f7f4;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   @keyframes accordion-down {
@@ -483,6 +490,123 @@
   .btn-outline-dark:hover {
     background: #13182c;
     color: #fff;
+  }
+}
+
+/*
+ * Admin workspace — Leandigi light UI (leandigi.vn): #fafafa canvas, warm ink,
+ * white panels, gold-tinted active rows like the site's dropdown menu.
+ */
+@layer components {
+  .admin-panel {
+    background: #fff;
+    border: 1px solid var(--color-admin-line);
+    border-radius: 20px;
+    box-shadow: 0 12px 32px rgba(19, 24, 44, 0.04);
+  }
+  .admin-nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 14px 0 22px;
+    border-radius: 12px;
+    color: var(--color-admin-muted);
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition:
+      background 0.2s,
+      color 0.2s;
+  }
+  .admin-nav-link:hover {
+    background: var(--color-admin-row);
+    color: var(--color-admin-ink);
+  }
+  .admin-nav-link[data-status="active"] {
+    background: #fdf6de;
+    color: var(--color-admin-ink);
+    font-weight: 700;
+  }
+  .admin-nav-link[data-status="active"]::before {
+    content: "";
+    position: absolute;
+    left: 9px;
+    top: 50%;
+    width: 3.5px;
+    height: 18px;
+    border-radius: 999px;
+    background: #f5cf5a;
+    transform: translateY(-50%);
+  }
+  .admin-input {
+    height: 44px;
+    width: 100%;
+    border: 1px solid rgba(23, 19, 11, 0.14);
+    border-radius: 12px;
+    background: #fff;
+    padding: 0 14px;
+    color: var(--color-admin-ink);
+    font-weight: 400;
+    outline: none;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+  .admin-input:focus {
+    border-color: #f5cf5a;
+    box-shadow: 0 0 0 3px rgba(245, 207, 90, 0.35);
+  }
+  textarea.admin-input {
+    height: auto;
+    padding-block: 10px;
+  }
+  .admin-label {
+    display: grid;
+    gap: 6px;
+    color: var(--color-admin-ink);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .admin-hint {
+    color: var(--color-admin-dim);
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .admin-segment {
+    border-radius: 999px;
+    padding: 6px 16px;
+    color: var(--color-admin-muted);
+    font-size: 14px;
+    font-weight: 500;
+    transition:
+      background 0.2s,
+      color 0.2s;
+  }
+  .admin-segment:hover {
+    color: var(--color-admin-ink);
+  }
+  .admin-segment[aria-pressed="true"] {
+    background: #fff;
+    color: var(--color-admin-ink);
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(19, 24, 44, 0.12);
+  }
+  /* Concentric rings from the leandigi.vn hero, used behind the login card. */
+  .admin-rings {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .admin-rings span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    border: 1px solid rgba(23, 19, 11, 0.12);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
   }
 }
 

@@ -3,6 +3,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { deletePost, getPostById, savePost, type Post, type PostInput } from "@/functions/posts";
+import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
 import { renderMarkdown } from "@/lib/markdown";
 
 export const Route = createFileRoute("/admin/news/$id")({
@@ -21,13 +22,17 @@ function PostEditorPage() {
 
   if (!isNew && query.isLoading) {
     return (
-      <div className="flex items-center gap-2 p-12 text-gray-500">
+      <div className="flex items-center gap-2 p-12 text-admin-muted">
         <Loader2 className="h-5 w-5 animate-spin" /> Đang tải…
       </div>
     );
   }
   if (!isNew && !query.data) {
-    return <p className="p-12 text-center text-gray-500">Không tìm thấy bài viết.</p>;
+    return (
+      <p className="p-12 text-center text-admin-muted">
+        Không tìm thấy bài viết. Có thể bài đã bị xóa.
+      </p>
+    );
   }
   return <PostEditor key={id} post={isNew ? null : query.data!} />;
 }
@@ -36,16 +41,15 @@ type Lang = "vi" | "en";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <label className="grid gap-1.5 text-sm font-medium text-gray-800">
+    <label className="admin-label">
       {label}
       {children}
-      {hint && <span className="text-xs font-normal text-gray-500">{hint}</span>}
+      {hint && <span className="admin-hint">{hint}</span>}
     </label>
   );
 }
 
-const inputClass =
-  "h-11 rounded-md border border-gray-200 bg-white px-3 font-normal outline-none focus:border-primary focus:ring-[3px] focus:ring-primary/30";
+const inputClass = "admin-input";
 
 function PostEditor({ post }: { post: Post | null }) {
   const navigate = useNavigate();
@@ -90,66 +94,69 @@ function PostEditor({ post }: { post: Post | null }) {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Link
-          to="/admin/news"
-          className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft className="h-4 w-4" /> Tất cả bài viết
-        </Link>
-        <span
-          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-            form.status === "published"
-              ? "bg-green-100 text-green-900"
-              : "bg-gray-200 text-gray-700"
-          }`}
-        >
-          {form.status === "published" ? "Đã đăng" : "Nháp"}
-        </span>
+      <Link
+        to="/admin/news"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-admin-muted hover:text-admin-ink"
+      >
+        <ArrowLeft className="h-4 w-4" /> Tất cả bài viết
+      </Link>
+      <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <h1 className="text-[2rem] font-bold leading-tight text-admin-ink">
+          {form.id ? "Sửa bài viết" : "Viết bài mới"}
+        </h1>
+        <PostStatusBadge published={form.status === "published"} />
         {form.id && form.slug && (
           <a
             href={`${import.meta.env.BASE_URL}news/${form.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-1 text-sm text-admin-muted hover:text-admin-ink"
           >
-            Xem bài <ExternalLink className="h-3.5 w-3.5" />
+            Xem trên website <ExternalLink className="h-3.5 w-3.5" />
           </a>
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
         {/* Content */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <div className="mb-6 flex items-center gap-2 border-b border-gray-100 pb-4">
-            {(["vi", "en"] as Lang[]).map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setTab(l)}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold ${
-                  tab === l
-                    ? "bg-brand-ink text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {l === "vi" ? "Tiếng Việt" : "English"}
-                {!form[`title_${l}`]?.trim() && <span className="ml-1 text-red-500">•</span>}
-              </button>
-            ))}
+        <div className="admin-panel p-6 sm:p-8">
+          <div className="mb-6 flex flex-wrap items-center gap-3 border-b border-admin-line pb-5">
+            <div
+              role="group"
+              aria-label="Ngôn ngữ"
+              className="flex gap-1 rounded-full bg-admin-row p-1 ring-1 ring-inset ring-admin-line"
+            >
+              {(["vi", "en"] as Lang[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  aria-pressed={tab === l}
+                  onClick={() => setTab(l)}
+                  className="admin-segment"
+                >
+                  {l === "vi" ? "Tiếng Việt" : "English"}
+                  {!form[`title_${l}`]?.trim() && (
+                    <span className="ml-1.5 text-red-500" title="Chưa có tiêu đề">
+                      •
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
+              aria-pressed={preview}
               onClick={() => setPreview((p) => !p)}
-              className="ml-auto text-sm font-medium text-gray-600 underline-offset-4 hover:underline"
+              className="ml-auto text-sm font-medium text-admin-muted underline-offset-4 hover:text-admin-ink hover:underline"
             >
-              {preview ? "Soạn thảo" : "Xem trước"}
+              {preview ? "Quay lại soạn thảo" : "Xem trước"}
             </button>
           </div>
 
           {preview ? (
-            <article className="text-gray-700">
-              <h1 className="mb-4 text-3xl font-bold text-gray-900">{form[titleKey]}</h1>
-              <p className="mb-6 text-lg text-gray-500">{form[excerptKey]}</p>
+            <article className="text-admin-muted">
+              <h1 className="mb-4 text-3xl font-bold text-admin-ink">{form[titleKey]}</h1>
+              <p className="mb-6 text-lg text-admin-dim">{form[excerptKey]}</p>
               <div dangerouslySetInnerHTML={{ __html: renderMarkdown(form[bodyKey] ?? "") }} />
             </article>
           ) : (
@@ -170,7 +177,7 @@ function PostEditor({ post }: { post: Post | null }) {
                   rows={2}
                   value={form[excerptKey] ?? ""}
                   onChange={(e) => set(excerptKey, e.target.value)}
-                  className={`${inputClass} h-auto py-2`}
+                  className={inputClass}
                   maxLength={500}
                 />
               </Field>
@@ -182,7 +189,7 @@ function PostEditor({ post }: { post: Post | null }) {
                   rows={18}
                   value={form[bodyKey] ?? ""}
                   onChange={(e) => set(bodyKey, e.target.value)}
-                  className={`${inputClass} h-auto py-3 font-mono text-sm leading-relaxed`}
+                  className={`${inputClass} font-mono text-sm leading-relaxed`}
                 />
               </Field>
             </div>
@@ -190,7 +197,7 @@ function PostEditor({ post }: { post: Post | null }) {
         </div>
 
         {/* Settings */}
-        <aside className="grid h-fit gap-5 rounded-xl border border-gray-200 bg-white p-6">
+        <aside className="admin-panel grid h-fit gap-5 p-6 lg:sticky lg:top-10">
           <Field label="Ảnh bìa (URL)" hint="Link ảnh https://… (khuyến nghị 1600×900).">
             <input
               value={form.cover_url ?? ""}
@@ -203,7 +210,7 @@ function PostEditor({ post }: { post: Post | null }) {
             <img
               src={form.cover_url}
               alt=""
-              className="aspect-video w-full rounded-lg object-cover"
+              className="aspect-video w-full rounded-xl object-cover"
             />
           )}
           <Field label="Đường dẫn (slug)" hint="Để trống sẽ tự tạo từ tiêu đề tiếng Anh.">
@@ -246,7 +253,7 @@ function PostEditor({ post }: { post: Post | null }) {
               {form.status === "published" ? "Gỡ xuống thành nháp" : "Lưu nháp"}
             </button>
             {missingTitle && (
-              <p className="text-xs text-gray-500">Cần tiêu đề cả tiếng Việt và tiếng Anh.</p>
+              <p className="text-xs text-admin-dim">Cần tiêu đề cả tiếng Việt và tiếng Anh.</p>
             )}
           </div>
 

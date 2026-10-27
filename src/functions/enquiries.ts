@@ -10,6 +10,9 @@ import { emailLayout, escapeHtml, sendMail } from "@/server/email";
 export const ENQUIRY_STATUSES = ["new", "contacted", "quoted", "won", "lost", "spam"] as const;
 export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number];
 
+/** The admin list's unfiltered view (shared by the page and the sidebar badge). */
+export const DEFAULT_ENQUIRY_FILTERS = { status: "all", kind: "all", q: "" } as const;
+
 export interface Enquiry {
   id: number;
   created_at: string;
