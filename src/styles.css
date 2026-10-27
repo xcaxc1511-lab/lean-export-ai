@@ -1,6 +1,9 @@
 @import "tailwindcss" source(none);
 @source "./";
 @import "tw-animate-css";
+/* Leandigi design system (synced from leandigi-design — see leandigi-design.json). */
+@import "./brand/leandigi-tokens.css";
+@import "./brand/leandigi-theme.css";
 @custom-variant dark (&:is(.dark *));
 
 /* Approved template tokens, expressed through the native Tailwind 4 theme. */
@@ -748,6 +751,24 @@
     accent-color: var(--color-admin-blue);
     cursor: pointer;
   }
+}
+
+/* Visual post builder: in-place editable text. */
+.builder-editable {
+  outline: none;
+  cursor: text;
+}
+.builder-editable:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.builder-editable a {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--ld-gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
 }
 
 .skip-link {

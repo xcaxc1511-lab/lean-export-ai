@@ -1,0 +1,6 @@
+{
+  "copy": {
+    "tokens.css": "src/brand/leandigi-tokens.css",
+    "tailwind-theme.css": "src/brand/leandigi-theme.css"
+  }
+}

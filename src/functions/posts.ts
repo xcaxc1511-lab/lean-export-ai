@@ -86,8 +86,9 @@ const postInput = z.object({
   title_vi: z.string().trim().min(1).max(200),
   excerpt_en: z.string().trim().max(500).optional().default(""),
   excerpt_vi: z.string().trim().max(500).optional().default(""),
-  body_en: z.string().max(50_000).optional().default(""),
-  body_vi: z.string().max(50_000).optional().default(""),
+  // Bodies are block JSON (see src/lib/blocks.ts), which is wordier than Markdown.
+  body_en: z.string().max(400_000).optional().default(""),
+  body_vi: z.string().max(400_000).optional().default(""),
   cover_url: z
     .string()
     .trim()

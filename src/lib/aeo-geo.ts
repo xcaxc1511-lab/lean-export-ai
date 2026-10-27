@@ -12,6 +12,8 @@
  * "word") gets proportionally higher limits.
  */
 
+import { bodyToMarkdown } from "@/lib/blocks";
+
 export type ScoreLang = "vi" | "en";
 export type CheckStatus = "pass" | "warn" | "fail";
 
@@ -223,7 +225,7 @@ export function scorePost(input: ScoreInput): PostScore {
               (v) => v >= n(15) && v <= n(130),
             ),
       detail: firstBlock?.type === "paragraph" ? `${leadWords} ${words}` : "Chưa có đoạn mở đầu",
-      tip: `Mở bài bằng một đoạn ${n(40)}–${n(60)} ${words} trả lời thẳng câu hỏi chính, trước tiêu đề phụ đầu tiên. Đây là đoạn AI hay trích nguyên văn.`,
+      tip: `Mở bài bằng một khối Đoạn văn ${n(40)}–${n(60)} ${words} trả lời thẳng câu hỏi chính, đặt ngay đầu bài, trước khối Tiêu đề đầu tiên. Đây là đoạn AI hay trích nguyên văn.`,
     },
     {
       id: "question-headings",
@@ -235,7 +237,7 @@ export function scorePost(input: ScoreInput): PostScore {
         (v) => v >= 1,
       ),
       detail: `${questionHeadings} tiêu đề có dấu “?”`,
-      tip: "Đặt ít nhất 2 tiêu đề phụ (## hoặc ###) dưới dạng câu hỏi khách thật sự hỏi, ví dụ: “## Robusta Việt Nam xuất khẩu theo tiêu chuẩn nào?”.",
+      tip: "Đặt ít nhất 2 khối Tiêu đề dưới dạng câu hỏi khách thật sự hỏi, ví dụ: “Robusta Việt Nam xuất khẩu theo tiêu chuẩn nào?”.",
     },
     {
       id: "faq",
@@ -247,7 +249,7 @@ export function scorePost(input: ScoreInput): PostScore {
         (v) => v >= 1,
       ),
       detail: `${faqCount} cặp hỏi–đáp`,
-      tip: "Thêm mục “## Câu hỏi thường gặp” (EN: “## FAQ”), dưới đó mỗi câu hỏi là một “### …?” kèm đoạn trả lời ngắn. Website tự tạo dữ liệu FAQ cho Google từ mục này.",
+      tip: "Thêm khối Hỏi đáp (FAQ) với ít nhất 3 câu hỏi, mỗi câu kèm câu trả lời ngắn. Website tự tạo dữ liệu FAQ cho Google từ khối này.",
     },
     {
       id: "lists",
@@ -259,7 +261,7 @@ export function scorePost(input: ScoreInput): PostScore {
         (v) => v >= 1,
       ),
       detail: `${lists.length} danh sách, ${listItems} mục`,
-      tip: "Trình bày thông số, quy trình hay lợi ích bằng danh sách “- …” hoặc các bước “1. …”. AI rất hay trích nguyên danh sách.",
+      tip: "Trình bày thông số, quy trình hay lợi ích bằng khối Danh sách (gạch đầu dòng hoặc đánh số) hay khối Số liệu nổi bật. AI rất hay trích nguyên danh sách.",
     },
     {
       id: "excerpt",
@@ -338,7 +340,7 @@ export function scorePost(input: ScoreInput): PostScore {
         (v) => v >= 1,
       ),
       detail: `${sourceDomains.size} nguồn khác nhau`,
-      tip: "Dẫn link tới ít nhất 2 nguồn uy tín, như ICO, USDA, Bộ NN&PTNT, VICOFA, Reuters, kèm cú pháp [tên nguồn](https://…).",
+      tip: "Dẫn link tới ít nhất 2 nguồn uy tín, như ICO, USDA, Bộ NN&PTNT, VICOFA, Reuters: bôi đen tên nguồn trong đoạn văn rồi bấm nút Link.",
     },
     {
       id: "entities",
@@ -362,7 +364,7 @@ export function scorePost(input: ScoreInput): PostScore {
         (v) => v >= 1,
       ),
       detail: `${h2Count} tiêu đề mục (##)`,
-      tip: "Chia bài thành ít nhất 3 mục với “## Tiêu đề”, để AI tách từng phần ra trả lời.",
+      tip: "Chia bài thành ít nhất 3 mục bằng khối Tiêu đề cỡ H2, để AI tách từng phần ra trả lời.",
     },
     {
       id: "depth",
@@ -395,7 +397,7 @@ export function scorePost(input: ScoreInput): PostScore {
             ? "warn"
             : "fail",
       detail: `${hasCover ? "Có" : "Chưa có"} ảnh bìa${images.length ? `, ${images.length - missingAlt}/${images.length} ảnh có mô tả` : ""}`,
-      tip: "Thêm ảnh bìa và viết mô tả cho mọi ảnh trong bài: ![mô tả ảnh](https://…).",
+      tip: "Thêm ảnh bìa (tab Bài viết) và điền “Mô tả ảnh” cho mọi khối Ảnh trong bài.",
     },
     {
       id: "bilingual",
@@ -422,7 +424,7 @@ export function scorePost(input: ScoreInput): PostScore {
   };
 }
 
-/** Score both languages of a stored post. */
+/** Score both languages of a stored post (block or legacy Markdown body). */
 export function scorePostBothLangs(post: {
   title_vi: string;
   title_en: string;
@@ -439,16 +441,16 @@ export function scorePostBothLangs(post: {
       lang: "vi",
       title: post.title_vi ?? "",
       excerpt: post.excerpt_vi ?? "",
-      body: post.body_vi ?? "",
-      otherBody: post.body_en ?? "",
+      body: bodyToMarkdown(post.body_vi, "vi"),
+      otherBody: bodyToMarkdown(post.body_en, "en"),
     }),
     en: scorePost({
       ...base,
       lang: "en",
       title: post.title_en ?? "",
       excerpt: post.excerpt_en ?? "",
-      body: post.body_en ?? "",
-      otherBody: post.body_vi ?? "",
+      body: bodyToMarkdown(post.body_en, "en"),
+      otherBody: bodyToMarkdown(post.body_vi, "vi"),
     }),
   };
 }

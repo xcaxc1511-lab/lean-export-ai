@@ -5,6 +5,7 @@ import { businessConfig } from "@/config/business";
 import { images } from "@/config/images";
 import { buildArticleSchema, buildFaqSchema } from "@/config/seo";
 import { extractFaq } from "@/lib/aeo-geo";
+import { bodyToMarkdown, isBlockBody, parseBody, renderBlocks } from "@/lib/blocks";
 import { pageHead } from "@/lib/seo-head";
 import { renderMarkdown } from "@/lib/markdown";
 import { useLang } from "@/lib/i18n";
@@ -41,9 +42,9 @@ export const Route = createFileRoute("/news/$slug")({
             }),
             // FAQ from the post's "FAQ / Câu hỏi thường gặp" section (English first).
             buildFaqSchema(
-              extractFaq(post.body_en ?? "").length
-                ? extractFaq(post.body_en ?? "")
-                : extractFaq(post.body_vi ?? ""),
+              extractFaq(bodyToMarkdown(post.body_en, "en")).length
+                ? extractFaq(bodyToMarkdown(post.body_en, "en"))
+                : extractFaq(bodyToMarkdown(post.body_vi, "vi")),
             ),
           ],
         )
@@ -106,7 +107,9 @@ function ArticlePage() {
       <div className="bg-white py-14 md:py-20">
         <div
           className="container mx-auto max-w-3xl px-4 text-lg text-gray-700"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }}
+          dangerouslySetInnerHTML={{
+            __html: isBlockBody(body) ? renderBlocks(parseBody(body)) : renderMarkdown(body),
+          }}
         />
       </div>
 
