@@ -66,7 +66,8 @@ export const getPostBySlug = createServerFn({ method: "GET" })
 export const listAllPosts = createServerFn({ method: "GET" }).handler(async () => {
   await requireAdmin();
   const db = await getDb();
-  return db.all<PostSummary>(`SELECT ${SUMMARY_COLS} FROM posts ORDER BY updated_at DESC`);
+  // Full rows: the admin list scores each post's AEO/GEO from its body.
+  return db.all<Post>("SELECT * FROM posts ORDER BY updated_at DESC");
 });
 
 /** Admin: one post for editing. */

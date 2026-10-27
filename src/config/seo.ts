@@ -251,6 +251,38 @@ export function buildFaqSchema(faqs: { question: L | string; answer: L | string 
   };
 }
 
+/** Article schema for a news post — helps answer engines attribute and date it. */
+export function buildArticleSchema(post: {
+  slug: string;
+  title: string;
+  description: string;
+  image: string | null;
+  inLanguage: string[];
+  publishedAt: string | null;
+  updatedAt: string;
+}) {
+  const organization = {
+    "@type": "Organization",
+    name: businessConfig.businessName,
+    url: SITE_URL || undefined,
+    // Colour logo: the header one is white and invisible on light backgrounds.
+    logo: buildUrl("/lean-export-logo.png"),
+  };
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.description,
+    image: post.image ? [buildUrl(post.image)] : undefined,
+    inLanguage: post.inLanguage,
+    datePublished: post.publishedAt ?? post.updatedAt,
+    dateModified: post.updatedAt,
+    mainEntityOfPage: buildUrl(`/news/${post.slug}`),
+    author: organization,
+    publisher: organization,
+  };
+}
+
 /** BreadcrumbList schema from an ordered list of label/path pairs. */
 export function buildBreadcrumbSchema(crumbs: { name: string; path: string }[]) {
   if (!crumbs?.length) return null;

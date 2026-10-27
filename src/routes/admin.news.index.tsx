@@ -3,7 +3,9 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, ImageOff, Loader2, Newspaper, Pencil, Plus, Search } from "lucide-react";
 import { AdminSubbar, AdminTopbar } from "@/components/admin/AdminShell";
+import { ScoreChip } from "@/components/admin/AeoGeoPanel";
 import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
+import { scorePostBothLangs } from "@/lib/aeo-geo";
 import { listAllPosts } from "@/functions/posts";
 
 export const Route = createFileRoute("/admin/news/")({
@@ -118,12 +120,13 @@ function NewsAdminPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="admin-table w-full min-w-[820px]">
+                <table className="admin-table w-full min-w-[900px]">
                   <thead>
                     <tr>
                       <th>Tiêu đề</th>
                       <th>Tiêu đề tiếng Anh</th>
                       <th>Trạng thái</th>
+                      <th title="Điểm AEO/GEO trung bình của từng bản ngôn ngữ">Điểm AEO/GEO</th>
                       <th>Ngày</th>
                       <th className="w-24">
                         <span className="sr-only">Thao tác</span>
@@ -132,6 +135,7 @@ function NewsAdminPage() {
                   </thead>
                   <tbody>
                     {visible.map((post) => {
+                      const scores = scorePostBothLangs(post);
                       const edit = () =>
                         void navigate({ to: "/admin/news/$id", params: { id: String(post.id) } });
                       return (
@@ -161,6 +165,12 @@ function NewsAdminPage() {
                           <td className="max-w-[280px] truncate">{post.title_en}</td>
                           <td>
                             <PostStatusBadge published={post.status === "published"} />
+                          </td>
+                          <td>
+                            <span className="flex items-center gap-1.5">
+                              <ScoreChip score={scores.vi.overall} prefix="VI" />
+                              <ScoreChip score={scores.en.overall} prefix="EN" />
+                            </span>
                           </td>
                           <td className="whitespace-nowrap tabular-nums">
                             {fmtDate(post.published_at ?? post.updated_at)}

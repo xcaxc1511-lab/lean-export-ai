@@ -3,6 +3,8 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { getPostBySlug } from "@/functions/posts";
 import { businessConfig } from "@/config/business";
 import { images } from "@/config/images";
+import { buildArticleSchema, buildFaqSchema } from "@/config/seo";
+import { extractFaq } from "@/lib/aeo-geo";
 import { pageHead } from "@/lib/seo-head";
 import { renderMarkdown } from "@/lib/markdown";
 import { useLang } from "@/lib/i18n";
@@ -17,13 +19,34 @@ export const Route = createFileRoute("/news/$slug")({
   },
   head: ({ loaderData: post }) =>
     post
-      ? pageHead({
-          title: `${post.title_en} | ${businessConfig.businessName}`,
-          description: post.excerpt_en || post.title_en,
-          path: `/news/${post.slug}`,
-          ...(post.cover_url && { ogImage: post.cover_url }),
-          noindex: post.status !== "published",
-        })
+      ? pageHead(
+          {
+            title: `${post.title_en} | ${businessConfig.businessName}`,
+            description: post.excerpt_en || post.title_en,
+            path: `/news/${post.slug}`,
+            ...(post.cover_url && { ogImage: post.cover_url }),
+            noindex: post.status !== "published",
+          },
+          [
+            buildArticleSchema({
+              slug: post.slug,
+              title: post.title_en,
+              description: post.excerpt_en || post.title_en,
+              image: post.cover_url,
+              inLanguage: [post.body_en && "en", post.body_vi && "vi"].filter((l): l is string =>
+                Boolean(l),
+              ),
+              publishedAt: post.published_at,
+              updatedAt: post.updated_at,
+            }),
+            // FAQ from the post's "FAQ / Câu hỏi thường gặp" section (English first).
+            buildFaqSchema(
+              extractFaq(post.body_en ?? "").length
+                ? extractFaq(post.body_en ?? "")
+                : extractFaq(post.body_vi ?? ""),
+            ),
+          ],
+        )
       : { meta: [{ title: "Page Not Found" }, { name: "robots", content: "noindex, nofollow" }] },
   notFoundComponent: NotFound,
   component: ArticlePage,

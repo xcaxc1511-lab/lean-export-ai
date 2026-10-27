@@ -1,6 +1,6 @@
 /**
  * Tiny, safe Markdown subset for news posts:
- *   ## Heading / ### Subheading, paragraphs (blank line), - bullet lists,
+ *   ## Heading / ### Subheading, paragraphs (blank line), - bullet lists, 1. numbered lists,
  *   **bold**, *italic*, [link](https://…), ![alt](https://…image).
  * Everything is HTML-escaped first; only whitelisted tags are produced and
  * URLs must be http(s) or site-relative, so editor input can't inject markup.
@@ -44,6 +44,10 @@ export function renderMarkdown(source: string): string {
       if (lines.every((l) => /^\s*[-*]\s+/.test(l))) {
         const items = lines.map((l) => `<li>${inline(l.replace(/^\s*[-*]\s+/, ""))}</li>`);
         return `<ul class="my-5 list-disc space-y-2 pl-6">${items.join("")}</ul>`;
+      }
+      if (lines.every((l) => /^\s*\d+[.)]\s+/.test(l))) {
+        const items = lines.map((l) => `<li>${inline(l.replace(/^\s*\d+[.)]\s+/, ""))}</li>`);
+        return `<ol class="my-5 list-decimal space-y-2 pl-6">${items.join("")}</ol>`;
       }
       const heading = /^(#{2,3})\s+(.*)$/.exec(block);
       if (heading && lines.length === 1) {

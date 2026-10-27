@@ -1,10 +1,12 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Eye, ExternalLink, Loader2, PenLine, Trash2 } from "lucide-react";
 import { deletePost, getPostById, savePost, type Post, type PostInput } from "@/functions/posts";
 import { AdminSubbar, AdminTopbar } from "@/components/admin/AdminShell";
+import { AeoGeoPanel, ScoreChip } from "@/components/admin/AeoGeoPanel";
 import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
+import { scorePostBothLangs } from "@/lib/aeo-geo";
 import { renderMarkdown } from "@/lib/markdown";
 
 export const Route = createFileRoute("/admin/news/$id")({
@@ -104,6 +106,7 @@ function PostEditor({ post }: { post: Post | null }) {
   const bodyKey = `body_${tab}` as const;
   const missingTitle = !form.title_en?.trim() || !form.title_vi?.trim();
   const isPublished = form.status === "published";
+  const scores = useMemo(() => scorePostBothLangs(form), [form]);
 
   return (
     <>
@@ -123,6 +126,7 @@ function PostEditor({ post }: { post: Post | null }) {
                 {!form[`title_${l}`]?.trim() && (
                   <span className="h-1.5 w-1.5 rounded-full bg-[#f04438]" title="Chưa có tiêu đề" />
                 )}
+                <ScoreChip score={scores[l].overall} prefix="AEO/GEO" />
               </button>
             ))}
           </>
@@ -229,7 +233,7 @@ function PostEditor({ post }: { post: Post | null }) {
                 </Field>
                 <Field
                   label={`Nội dung (${tab.toUpperCase()})`}
-                  hint="Cách một dòng trống để xuống đoạn · ## Tiêu đề · **đậm** · *nghiêng* · - danh sách · [chữ](https://link) · ![mô tả](https://ảnh.jpg)"
+                  hint="Cách một dòng trống để xuống đoạn · ## Tiêu đề · ### Câu hỏi? · **đậm** · *nghiêng* · - danh sách · 1. các bước · [nguồn](https://link) · ![mô tả](https://ảnh.jpg)"
                 >
                   <textarea
                     rows={18}
@@ -242,51 +246,58 @@ function PostEditor({ post }: { post: Post | null }) {
             )}
           </div>
 
-          {/* Settings */}
-          <aside className="admin-card lg:sticky lg:top-6">
-            <h3 className="border-b border-admin-line px-5 py-4 text-base font-semibold text-admin-ink">
-              Cài đặt bài viết
-            </h3>
-            <div className="grid gap-5 p-5">
-              <Field label="Ảnh bìa (URL)" hint="Link ảnh https://… (khuyến nghị 1600×900).">
-                <input
-                  value={form.cover_url ?? ""}
-                  onChange={(e) => set("cover_url", e.target.value)}
-                  placeholder="https://…"
-                  className="admin-input"
-                />
-              </Field>
-              {form.cover_url && /^(https?:\/\/|\/)/.test(form.cover_url) && (
-                <img
-                  src={form.cover_url}
-                  alt=""
-                  className="aspect-video w-full rounded-lg border border-admin-line object-cover"
-                />
-              )}
-              <Field label="Đường dẫn (slug)" hint="Để trống sẽ tự tạo từ tiêu đề tiếng Anh.">
-                <input
-                  value={form.slug ?? ""}
-                  onChange={(e) => set("slug", e.target.value)}
-                  placeholder="vietnam-coffee-harvest-2026"
-                  className="admin-input"
-                />
-              </Field>
-            </div>
-            {form.id && (
-              <div className="border-t border-admin-line px-5 py-4">
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-danger w-full"
-                  disabled={remove.isPending}
-                  onClick={() => {
-                    if (window.confirm("Xóa vĩnh viễn bài viết này?")) remove.mutate();
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" /> Xóa bài
-                </button>
+          <div className="grid gap-5">
+            <AeoGeoPanel
+              result={scores[tab]}
+              langLabel={tab === "vi" ? "tiếng Việt" : "tiếng Anh"}
+            />
+
+            {/* Settings */}
+            <aside className="admin-card">
+              <h3 className="border-b border-admin-line px-5 py-4 text-base font-semibold text-admin-ink">
+                Cài đặt bài viết
+              </h3>
+              <div className="grid gap-5 p-5">
+                <Field label="Ảnh bìa (URL)" hint="Link ảnh https://… (khuyến nghị 1600×900).">
+                  <input
+                    value={form.cover_url ?? ""}
+                    onChange={(e) => set("cover_url", e.target.value)}
+                    placeholder="https://…"
+                    className="admin-input"
+                  />
+                </Field>
+                {form.cover_url && /^(https?:\/\/|\/)/.test(form.cover_url) && (
+                  <img
+                    src={form.cover_url}
+                    alt=""
+                    className="aspect-video w-full rounded-lg border border-admin-line object-cover"
+                  />
+                )}
+                <Field label="Đường dẫn (slug)" hint="Để trống sẽ tự tạo từ tiêu đề tiếng Anh.">
+                  <input
+                    value={form.slug ?? ""}
+                    onChange={(e) => set("slug", e.target.value)}
+                    placeholder="vietnam-coffee-harvest-2026"
+                    className="admin-input"
+                  />
+                </Field>
               </div>
-            )}
-          </aside>
+              {form.id && (
+                <div className="border-t border-admin-line px-5 py-4">
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-danger w-full"
+                    disabled={remove.isPending}
+                    onClick={() => {
+                      if (window.confirm("Xóa vĩnh viễn bài viết này?")) remove.mutate();
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" /> Xóa bài
+                  </button>
+                </div>
+              )}
+            </aside>
+          </div>
         </div>
       </div>
     </>
