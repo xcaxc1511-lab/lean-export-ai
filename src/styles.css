@@ -47,23 +47,23 @@
     Roboto, "Helvetica Neue", Arial, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
     "Segoe UI Symbol", "Noto Color Emoji";
   /* Leandigi brand surfaces (dark navy family, from leandigi.pages.dev). */
-  --color-brand-ink: #13182c;
+  --color-brand-ink: var(--ld-navy);
   --color-brand-ink-2: #1c2238;
   --color-brand-ink-3: #262c47;
-  --color-brand-line: #2f334a;
-  --color-brand-footer: #111319;
+  --color-brand-line: var(--ld-navy-2);
+  --color-brand-footer: var(--ld-dark);
   /* Admin workspace — mirrors the GoHighLevel (LeadConnector) app the team uses daily. */
-  --color-admin-canvas: #f2f4f7;
-  --color-admin-ink: #101828;
-  --color-admin-text: #344054;
-  --color-admin-muted: #475467;
+  --color-admin-canvas: var(--ld-app-canvas);
+  --color-admin-ink: var(--ld-app-ink);
+  --color-admin-text: var(--ld-app-text);
+  --color-admin-muted: var(--ld-app-muted);
   --color-admin-dim: #667085;
-  --color-admin-line: #eaecf0;
-  --color-admin-field: #d0d5dd;
-  --color-admin-row: #f9fafb;
-  --color-admin-blue: #155eef;
-  --color-admin-blue-dark: #004eeb;
-  --color-admin-blue-soft: #eff4ff;
+  --color-admin-line: var(--ld-app-line);
+  --color-admin-field: var(--ld-app-field);
+  --color-admin-row: var(--ld-app-row);
+  --color-admin-blue: var(--ld-app-blue);
+  --color-admin-blue-dark: var(--ld-app-blue-hover);
+  --color-admin-blue-soft: var(--ld-app-blue-soft);
   --color-admin-side: #1d2026;
   --color-admin-side-2: #2a2e35;
   --color-admin-side-line: #3a3f48;
@@ -90,32 +90,32 @@
   :root {
     /* Leandigi palette — see https://leandigi.pages.dev/ */
     --background: #ffffff;
-    --foreground: #13182c;
+    --foreground: var(--ld-navy);
 
     --card: #ffffff;
-    --card-foreground: #13182c;
+    --card-foreground: var(--ld-navy);
 
     --popover: #ffffff;
-    --popover-foreground: #13182c;
+    --popover-foreground: var(--ld-navy);
 
-    --primary: #f5cf5a;
-    --primary-foreground: #0a0a0a;
+    --primary: var(--ld-gold);
+    --primary-foreground: var(--ld-black);
 
-    --secondary: #f7f7f4;
-    --secondary-foreground: #13182c;
+    --secondary: var(--ld-row);
+    --secondary-foreground: var(--ld-navy);
 
     --muted: #f1f1ee;
     --muted-foreground: #686a75;
 
-    --accent: #fdf6de;
-    --accent-foreground: #17130b;
+    --accent: var(--ld-gold-soft);
+    --accent-foreground: var(--ld-ink);
 
     --destructive: hsl(0 84.2% 60.2%);
     --destructive-foreground: hsl(210 40% 98%);
 
     --border: rgba(19, 24, 44, 0.13);
     --input: rgba(19, 24, 44, 0.13);
-    --ring: #f5cf5a;
+    --ring: var(--ld-gold);
 
     --radius: 0.5rem;
 
@@ -137,17 +137,17 @@
   }
 
   .dark {
-    --background: #13182c;
+    --background: var(--ld-navy);
     --foreground: hsl(210 40% 98%);
 
-    --card: #13182c;
+    --card: var(--ld-navy);
     --card-foreground: hsl(210 40% 98%);
 
-    --popover: #13182c;
+    --popover: var(--ld-navy);
     --popover-foreground: hsl(210 40% 98%);
 
-    --primary: #f5cf5a;
-    --primary-foreground: #0a0a0a;
+    --primary: var(--ld-gold);
+    --primary-foreground: var(--ld-black);
 
     --secondary: hsl(217.2 32.6% 17.5%);
     --secondary-foreground: hsl(210 40% 98%);
@@ -163,7 +163,7 @@
 
     --border: hsl(217.2 32.6% 17.5%);
     --input: hsl(217.2 32.6% 17.5%);
-    --ring: #f5cf5a;
+    --ring: var(--ld-gold);
     --sidebar-background: hsl(240 5.9% 10%);
     --sidebar-foreground: hsl(240 4.8% 95.9%);
     --sidebar-primary: hsl(224.3 76.3% 48%);
@@ -261,7 +261,7 @@
     flex-shrink: 0;
     border-radius: 9999px;
     background: #fff;
-    color: #0a0a0a;
+    color: var(--ld-black);
     transition: transform 0.25s ease;
   }
   .btn-arrow svg {
@@ -273,28 +273,28 @@
   }
 
   .btn-primary {
-    background: #facd4a;
-    color: #0a0a0a;
+    background: var(--ld-gold-button);
+    color: var(--ld-black);
   }
   /* Hover: white fill; the gold border keeps the pill visible on white sections. */
   .btn-primary:hover {
-    border-color: #facd4a;
+    border-color: var(--ld-gold-button);
     background: #fff;
-    color: #0a0a0a;
+    color: var(--ld-black);
   }
   .btn-primary:hover .btn-arrow {
-    background: #facd4a;
+    background: var(--ld-gold-button);
   }
   .btn-dark {
-    background: #13182c;
+    background: var(--ld-navy);
     color: #fff;
   }
   .btn-dark .btn-arrow {
-    background: #facd4a;
+    background: var(--ld-gold-button);
   }
   .btn-dark:hover {
     background: #fff;
-    color: #0a0a0a;
+    color: var(--ld-black);
   }
   .btn-outline-light {
     border-color: rgba(255, 255, 255, 0.45);
@@ -304,12 +304,12 @@
   .btn-outline-light:hover {
     border-color: #fff;
     background: #fff;
-    color: #0a0a0a;
+    color: var(--ld-black);
   }
   .btn-outline-dark {
-    border-color: #13182c;
+    border-color: var(--ld-navy);
     background: transparent;
-    color: #13182c;
+    color: var(--ld-navy);
   }
   /*
    * Header navigation — mirrors the Leandigi nav (gold underline on hover/active,
@@ -351,7 +351,7 @@
     right: 0;
     height: 2.5px;
     border-radius: 999px;
-    background: #f5cf5a;
+    background: var(--ld-gold);
     opacity: 0;
     transform: scaleX(0);
     transition:
@@ -410,7 +410,7 @@
     gap: 4px;
     width: 280px;
     padding: 10px;
-    border: 1px solid rgba(23, 19, 11, 0.14);
+    border: 1px solid var(--ld-line);
     border-radius: 16px;
     background: #fff;
     box-shadow: 0 20px 48px rgba(19, 24, 44, 0.14);
@@ -473,13 +473,13 @@
   }
   .nav-dropdown-menu a:hover {
     background: rgba(23, 19, 11, 0.05);
-    color: #111319;
+    color: var(--ld-dark);
     transform: translateX(2px);
   }
   .nav-dropdown-menu a[data-status="active"] {
     padding-left: 20px;
-    background: #faecc1;
-    color: #17130b;
+    background: var(--ld-gold-badge);
+    color: var(--ld-ink);
     font-weight: 700;
   }
   .nav-dropdown-menu a[data-status="active"]:hover {
@@ -493,13 +493,13 @@
     width: 3.5px;
     height: 18px;
     border-radius: 999px;
-    background: #f5cf5a;
+    background: var(--ld-gold);
     box-shadow: 0 1px 4px rgba(245, 207, 90, 0.5);
     transform: translateY(-50%);
   }
 
   .btn-outline-dark:hover {
-    background: #13182c;
+    background: var(--ld-navy);
     color: #fff;
   }
 }
@@ -660,7 +660,7 @@
     bottom: 0;
     height: 3px;
     border-radius: 3px 3px 0 0;
-    background: #f5cf5a;
+    background: var(--ld-gold);
   }
   /* Smart-list tabs under the top bar — blue underline. */
   .admin-subtab {

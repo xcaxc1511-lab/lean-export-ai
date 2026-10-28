@@ -12,7 +12,9 @@
     "format": "prettier --write .",
     "build:cf": "cross-env CF_BUILD=1 vite build",
     "preview:cf": "wrangler dev --config dist/server/wrangler.json --local",
-    "deploy:cf": "wrangler deploy"
+    "deploy:cf": "wrangler deploy",
+    "sync:design": "node \"../../../OneDrive/Desktop/Cloude Leandigi/leandigi-design/scripts/sync.mjs\" .",
+    "check:design": "node \"../../../OneDrive/Desktop/Cloude Leandigi/leandigi-design/scripts/check.mjs\" ."
   },
   "overrides": {
     "rolldown": "1.2.1"
