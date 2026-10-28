@@ -15,13 +15,14 @@ import {
   PenLine,
   Plus,
   Redo2,
+  Save,
   Smartphone,
   Tablet,
   Trash2,
   Undo2,
 } from "lucide-react";
 import { deletePost, savePost, type Post } from "@/functions/posts";
-import { scorePostBothLangs } from "@/lib/aeo-geo";
+import { scorePostBothLangs, scoreTone } from "@/lib/aeo-geo";
 import {
   blockWrapClass,
   cloneBlock,
@@ -105,6 +106,11 @@ export function PostBuilder({ post }: { post: Post | null }) {
   const [anchorId, setAnchorId] = useState<string | null>(null);
   const [panel, setPanel] = useState<Panel>("blocks");
   const [panelOpen, setPanelOpen] = useState(true);
+  // On phones/tablets the panel overlays the page, so start with it closed.
+  const isNarrow = () => typeof window !== "undefined" && window.innerWidth < 1024;
+  useEffect(() => {
+    if (isNarrow()) setPanelOpen(false);
+  }, []);
   const [device, setDevice] = useState<Device>("desktop");
   const [preview, setPreview] = useState(false);
   const [focusReq, setFocusReq] = useState<(FocusRequest & { id: string }) | null>(null);
@@ -221,6 +227,7 @@ export function PostBuilder({ post }: { post: Post | null }) {
     commit((bs) => bs.map((b) => (b.id === id ? ({ ...b, ...patch } as Block) : b)), `edit:${id}`);
 
   const insertBlock = (type: BlockType, at?: number) => {
+    if (isNarrow()) setPanelOpen(false);
     const block = createBlock(type);
     commit((bs) => {
       const anchorIndex = bs.findIndex((b) => b.id === anchorId);
@@ -385,7 +392,7 @@ export function PostBuilder({ post }: { post: Post | null }) {
       <InlineToolbar />
 
       {/* ------------------------------------------------ top bar */}
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-admin-line bg-white px-3">
+      <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-admin-line bg-white px-2 sm:gap-2 sm:px-3">
         <Link
           to="/admin/news"
           onClick={(e) => {
@@ -419,26 +426,40 @@ export function PostBuilder({ post }: { post: Post | null }) {
 
         <div className="mx-auto flex items-center gap-2">
           <div className="flex rounded-lg bg-admin-canvas p-1" role="group" aria-label="Ngôn ngữ">
-            {(["vi", "en"] as Lang[]).map((l) => (
-              <button
-                key={l}
-                type="button"
-                aria-pressed={lang === l}
-                onClick={() => {
-                  setLang(l);
-                  setSelectedId(null);
-                  setAnchorId(null);
-                }}
-                className={`flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium ${
-                  lang === l
-                    ? "bg-white text-admin-ink shadow-sm"
-                    : "text-admin-muted hover:text-admin-ink"
-                }`}
-              >
-                {l === "vi" ? "Tiếng Việt" : "English"}
-                <ScoreChip score={scores[l].overall} />
-              </button>
-            ))}
+            {(["vi", "en"] as Lang[]).map((l) => {
+              const name = l === "vi" ? "Tiếng Việt" : "English";
+              const score = scores[l].overall;
+              return (
+                <button
+                  key={l}
+                  type="button"
+                  aria-pressed={lang === l}
+                  aria-label={`${name}, điểm AEO/GEO ${score}/100`}
+                  title={`${name}: AEO/GEO ${score}/100`}
+                  onClick={() => {
+                    setLang(l);
+                    setSelectedId(null);
+                    setAnchorId(null);
+                  }}
+                  className={`flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-sm font-semibold md:px-3 md:font-medium ${
+                    lang === l
+                      ? "bg-white text-admin-ink shadow-sm"
+                      : "text-admin-muted hover:text-admin-ink"
+                  }`}
+                >
+                  {/* Mobile: language code + score-coloured dot; wider: full name + score. */}
+                  <span className="md:hidden">{l.toUpperCase()}</span>
+                  <span
+                    aria-hidden="true"
+                    className={`h-1.5 w-1.5 rounded-full md:hidden ${scoreTone(score).bar}`}
+                  />
+                  <span className="hidden md:inline">{name}</span>
+                  <span className="hidden md:inline-flex">
+                    <ScoreChip score={score} />
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <div
             className="hidden rounded-lg bg-admin-canvas p-1 md:flex"
@@ -520,12 +541,14 @@ export function PostBuilder({ post }: { post: Post | null }) {
         </button>
         <button
           type="button"
-          className="admin-btn admin-btn-secondary h-9 px-3"
+          className="admin-btn admin-btn-secondary h-9 w-9 px-0 sm:w-auto sm:px-3"
           disabled={save.isPending || missingTitle}
           onClick={() => save.mutate("draft")}
-          title="Ctrl+S"
+          aria-label={isPublished ? "Gỡ về nháp" : "Lưu nháp"}
+          title={`${isPublished ? "Gỡ về nháp" : "Lưu nháp"} (Ctrl+S)`}
         >
-          {isPublished ? "Gỡ về nháp" : "Lưu nháp"}
+          <Save className="h-4 w-4 sm:hidden" />
+          <span className="hidden sm:inline">{isPublished ? "Gỡ về nháp" : "Lưu nháp"}</span>
         </button>
         <button
           type="button"
