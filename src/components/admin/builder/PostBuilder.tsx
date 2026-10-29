@@ -20,6 +20,8 @@ import {
   Tablet,
   Trash2,
   Undo2,
+  Settings2,
+  X,
 } from "lucide-react";
 import { deletePost, savePost, type Post } from "@/functions/posts";
 import { scorePostBothLangs, scoreTone } from "@/lib/aeo-geo";
@@ -569,202 +571,221 @@ export function PostBuilder({ post }: { post: Post | null }) {
       <div className="flex min-h-0 flex-1">
         {/* ---------------------------------------------- left panel */}
         {panelOpen && !preview && (
-          <aside className="absolute inset-y-14 left-0 z-20 flex w-[320px] flex-col border-r border-admin-line bg-white shadow-xl lg:static lg:shadow-none">
-            <div className="flex shrink-0 border-b border-admin-line" role="tablist">
-              {(
-                [
-                  ["blocks", "Khối"],
-                  ["post", "Bài viết"],
-                  ["score", "AEO/GEO"],
-                ] as const
-              ).map(([p, label]) => (
+          <>
+            <div
+              className="fixed inset-0 z-30 bg-black/30 lg:hidden"
+              aria-hidden="true"
+              onClick={() => setPanelOpen(false)}
+            />
+            <aside className="fixed inset-x-0 bottom-0 z-40 flex max-h-[75dvh] flex-col rounded-t-2xl bg-white shadow-2xl lg:static lg:z-auto lg:max-h-none lg:w-[320px] lg:rounded-none lg:border-r lg:border-admin-line lg:shadow-none">
+              <div className="relative flex h-9 shrink-0 items-center justify-center lg:hidden">
+                <span className="h-1 w-10 rounded-full bg-admin-field" aria-hidden="true" />
                 <button
-                  key={p}
                   type="button"
-                  role="tab"
-                  aria-selected={panel === p}
-                  aria-current={panel === p ? "page" : undefined}
-                  onClick={() => {
-                    setPanel(p);
-                    if (p === "blocks") setSelectedId(null);
-                  }}
-                  className="admin-subtab h-12 flex-1 justify-center px-2"
+                  onClick={() => setPanelOpen(false)}
+                  aria-label="Đóng bảng"
+                  className="absolute right-2 top-1 rounded-md p-1.5 text-admin-muted hover:bg-admin-row"
                 >
-                  {label}
-                  {p === "score" && <ScoreChip score={scores[lang].overall} />}
+                  <X className="h-4 w-4" />
                 </button>
-              ))}
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {panel === "blocks" &&
-                (selected ? (
-                  <BlockSettings
-                    key={selected.id}
-                    block={selected}
-                    onChange={(patch) => updateBlock(selected.id, patch)}
-                    onDuplicate={() => duplicateBlock(selected.id)}
-                    onDelete={() => deleteBlock(selected.id)}
-                    onClose={() => setSelectedId(null)}
-                  />
-                ) : (
-                  <div className="p-4">
-                    <p className="mb-4 text-xs text-admin-dim">
-                      Kéo khối thả vào trang, hoặc bấm để thêm ngay sau khối bạn vừa chọn.
-                    </p>
-                    {WIDGET_GROUPS.map((g) => (
-                      <div key={g.id} className="mb-5">
-                        <h4 className="mb-2 text-xs font-semibold text-admin-dim">
-                          {g.label}
-                          {g.hint && <span className="block font-normal">{g.hint}</span>}
-                        </h4>
-                        <div className="grid grid-cols-3 gap-2">
-                          {WIDGETS.filter((w) => w.group === g.id).map((w) => (
-                            <button
-                              key={w.type}
-                              type="button"
-                              draggable
-                              onDragStart={(e) => startNewDrag(e, w.type)}
-                              onDragEnd={endDrag}
-                              onClick={() => insertBlock(w.type)}
-                              className="flex aspect-square cursor-grab flex-col items-center justify-center gap-2 rounded-lg border border-admin-line bg-white p-2 text-center text-xs font-medium text-admin-text transition-colors hover:border-[#84adff] hover:bg-admin-blue-soft hover:text-admin-blue active:cursor-grabbing"
-                            >
-                              <w.icon className="h-5 w-5" />
-                              {w.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              </div>
+              <div className="flex shrink-0 border-b border-admin-line" role="tablist">
+                {(
+                  [
+                    ["blocks", "Khối"],
+                    ["post", "Bài viết"],
+                    ["score", "AEO/GEO"],
+                  ] as const
+                ).map(([p, label]) => (
+                  <button
+                    key={p}
+                    type="button"
+                    role="tab"
+                    aria-selected={panel === p}
+                    aria-current={panel === p ? "page" : undefined}
+                    onClick={() => {
+                      setPanel(p);
+                      if (p === "blocks") setSelectedId(null);
+                    }}
+                    className="admin-subtab h-12 flex-1 justify-center px-2"
+                  >
+                    {label}
+                    {p === "score" && <ScoreChip score={scores[lang].overall} />}
+                  </button>
                 ))}
+              </div>
 
-              {panel === "post" && (
-                <div className="grid gap-5 p-4">
-                  <label className="admin-label">
-                    Tiêu đề ({lang.toUpperCase()}) *
-                    <textarea
-                      rows={2}
-                      className="admin-input"
-                      value={title}
-                      maxLength={200}
-                      onChange={(e) => setTitle(e.target.value.replace(/\n/g, " "))}
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {panel === "blocks" &&
+                  (selected ? (
+                    <BlockSettings
+                      key={selected.id}
+                      block={selected}
+                      onChange={(patch) => updateBlock(selected.id, patch)}
+                      onDuplicate={() => duplicateBlock(selected.id)}
+                      onDelete={() => deleteBlock(selected.id)}
+                      onClose={() => setSelectedId(null)}
                     />
-                    <span className="admin-hint">
-                      {title.length}/70 ký tự khuyến nghị. Cũng sửa được ngay trên trang.
-                    </span>
-                  </label>
-                  <label className="admin-label">
-                    Tóm tắt ({lang.toUpperCase()})
-                    <textarea
-                      rows={3}
-                      className="admin-input"
-                      value={excerpt}
-                      maxLength={500}
-                      onChange={(e) => setExcerpt(e.target.value)}
-                    />
-                    <span className="admin-hint">
-                      {excerpt.length} ký tự, nên 110–170. Hiện dưới tiêu đề và khi chia sẻ.
-                    </span>
-                  </label>
-                  <label className="admin-label">
-                    Ảnh bìa (URL)
-                    <input
-                      className="admin-input"
-                      value={meta.cover_url}
-                      placeholder="https://…"
-                      onChange={(e) => setMeta((m) => ({ ...m, cover_url: e.target.value }))}
-                    />
-                    <span className="admin-hint">
-                      Khuyến nghị 1600×900. Dùng chung cho 2 ngôn ngữ.
-                    </span>
-                  </label>
-                  {safeUrl(meta.cover_url) && (
-                    <img
-                      src={safeUrl(meta.cover_url)}
-                      alt=""
-                      className="aspect-video w-full rounded-lg border border-admin-line object-cover"
-                    />
-                  )}
-                  <label className="admin-label">
-                    Đường dẫn (slug)
-                    <input
-                      className="admin-input"
-                      value={meta.slug}
-                      placeholder="vietnam-coffee-harvest-2026"
-                      onChange={(e) => setMeta((m) => ({ ...m, slug: e.target.value }))}
-                    />
-                    <span className="admin-hint">Để trống sẽ tự tạo từ tiêu đề tiếng Anh.</span>
-                  </label>
-                  {meta.id && meta.slug && (
-                    <a
-                      href={`${import.meta.env.BASE_URL}news/${meta.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-sm font-medium text-admin-blue hover:underline"
-                    >
-                      Xem trên website <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-                  <div className="grid gap-2 border-t border-admin-line pt-5">
-                    <button
-                      type="button"
-                      className="admin-btn admin-btn-secondary"
-                      disabled={!hist.present[otherLang].length}
-                      onClick={() => {
-                        if (
-                          blocks.length &&
-                          !window.confirm(
-                            `Thay toàn bộ nội dung bản ${lang === "vi" ? "Tiếng Việt" : "English"} bằng bố cục của bản ${otherLang === "vi" ? "Tiếng Việt" : "English"}?`,
+                  ) : (
+                    <div className="p-4">
+                      <p className="mb-4 text-xs text-admin-dim">
+                        Kéo khối thả vào trang, hoặc bấm để thêm ngay sau khối bạn vừa chọn.
+                      </p>
+                      {WIDGET_GROUPS.map((g) => (
+                        <div key={g.id} className="mb-5">
+                          <h4 className="mb-2 text-xs font-semibold text-admin-dim">
+                            {g.label}
+                            {g.hint && <span className="block font-normal">{g.hint}</span>}
+                          </h4>
+                          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-3">
+                            {WIDGETS.filter((w) => w.group === g.id).map((w) => (
+                              <button
+                                key={w.type}
+                                type="button"
+                                draggable
+                                onDragStart={(e) => startNewDrag(e, w.type)}
+                                onDragEnd={endDrag}
+                                onClick={() => insertBlock(w.type)}
+                                className="flex aspect-square cursor-grab flex-col items-center justify-center gap-2 rounded-lg border border-admin-line bg-white p-2 text-center text-xs font-medium text-admin-text transition-colors hover:border-[#84adff] hover:bg-admin-blue-soft hover:text-admin-blue active:cursor-grabbing"
+                              >
+                                <w.icon className="h-5 w-5" />
+                                {w.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+
+                {panel === "post" && (
+                  <div className="grid gap-5 p-4">
+                    <label className="admin-label">
+                      Tiêu đề ({lang.toUpperCase()}) *
+                      <textarea
+                        rows={2}
+                        className="admin-input"
+                        value={title}
+                        maxLength={200}
+                        onChange={(e) => setTitle(e.target.value.replace(/\n/g, " "))}
+                      />
+                      <span className="admin-hint">
+                        {title.length}/70 ký tự khuyến nghị. Cũng sửa được ngay trên trang.
+                      </span>
+                    </label>
+                    <label className="admin-label">
+                      Tóm tắt ({lang.toUpperCase()})
+                      <textarea
+                        rows={3}
+                        className="admin-input"
+                        value={excerpt}
+                        maxLength={500}
+                        onChange={(e) => setExcerpt(e.target.value)}
+                      />
+                      <span className="admin-hint">
+                        {excerpt.length} ký tự, nên 110–170. Hiện dưới tiêu đề và khi chia sẻ.
+                      </span>
+                    </label>
+                    <label className="admin-label">
+                      Ảnh bìa (URL)
+                      <input
+                        className="admin-input"
+                        value={meta.cover_url}
+                        placeholder="https://…"
+                        onChange={(e) => setMeta((m) => ({ ...m, cover_url: e.target.value }))}
+                      />
+                      <span className="admin-hint">
+                        Khuyến nghị 1600×900. Dùng chung cho 2 ngôn ngữ.
+                      </span>
+                    </label>
+                    {safeUrl(meta.cover_url) && (
+                      <img
+                        src={safeUrl(meta.cover_url)}
+                        alt=""
+                        className="aspect-video w-full rounded-lg border border-admin-line object-cover"
+                      />
+                    )}
+                    <label className="admin-label">
+                      Đường dẫn (slug)
+                      <input
+                        className="admin-input"
+                        value={meta.slug}
+                        placeholder="vietnam-coffee-harvest-2026"
+                        onChange={(e) => setMeta((m) => ({ ...m, slug: e.target.value }))}
+                      />
+                      <span className="admin-hint">Để trống sẽ tự tạo từ tiêu đề tiếng Anh.</span>
+                    </label>
+                    {meta.id && meta.slug && (
+                      <a
+                        href={`${import.meta.env.BASE_URL}news/${meta.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-sm font-medium text-admin-blue hover:underline"
+                      >
+                        Xem trên website <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                    <div className="grid gap-2 border-t border-admin-line pt-5">
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-secondary"
+                        disabled={!hist.present[otherLang].length}
+                        onClick={() => {
+                          if (
+                            blocks.length &&
+                            !window.confirm(
+                              `Thay toàn bộ nội dung bản ${lang === "vi" ? "Tiếng Việt" : "English"} bằng bố cục của bản ${otherLang === "vi" ? "Tiếng Việt" : "English"}?`,
+                            )
                           )
-                        )
-                          return;
-                        commit(() => hist.present[otherLang].map(cloneBlock));
-                      }}
-                    >
-                      <Copy className="h-4 w-4" />
-                      Chép bố cục từ bản {otherLang === "vi" ? "Tiếng Việt" : "English"}
-                    </button>
-                    <span className="admin-hint">
-                      Chép toàn bộ khối sang bản đang mở để dịch, giữ nguyên ảnh và cách trình bày.
-                    </span>
+                            return;
+                          commit(() => hist.present[otherLang].map(cloneBlock));
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                        Chép bố cục từ bản {otherLang === "vi" ? "Tiếng Việt" : "English"}
+                      </button>
+                      <span className="admin-hint">
+                        Chép toàn bộ khối sang bản đang mở để dịch, giữ nguyên ảnh và cách trình
+                        bày.
+                      </span>
+                    </div>
+                    {meta.id && (
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-danger"
+                        disabled={remove.isPending}
+                        onClick={() => {
+                          if (window.confirm("Xóa vĩnh viễn bài viết này?")) remove.mutate();
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" /> Xóa bài viết
+                      </button>
+                    )}
                   </div>
-                  {meta.id && (
-                    <button
-                      type="button"
-                      className="admin-btn admin-btn-danger"
-                      disabled={remove.isPending}
-                      onClick={() => {
-                        if (window.confirm("Xóa vĩnh viễn bài viết này?")) remove.mutate();
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" /> Xóa bài viết
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
 
-              {panel === "score" && (
-                <div className="p-4">
-                  <AeoGeoPanel
-                    result={scores[lang]}
-                    langLabel={lang === "vi" ? "tiếng Việt" : "tiếng Anh"}
-                  />
-                </div>
-              )}
-            </div>
-          </aside>
+                {panel === "score" && (
+                  <div className="p-4">
+                    <AeoGeoPanel
+                      result={scores[lang]}
+                      langLabel={lang === "vi" ? "tiếng Việt" : "tiếng Anh"}
+                    />
+                  </div>
+                )}
+              </div>
+            </aside>
+          </>
         )}
 
         {/* ----------------------------------------------------- canvas */}
         <main
-          className="min-w-0 flex-1 overflow-y-auto overscroll-contain px-3 py-6 md:px-8"
+          className="min-w-0 flex-1 overflow-y-auto overscroll-contain pb-20 md:px-8 md:py-6 lg:pb-6"
           onMouseDown={(e) => {
             if (!(e.target as HTMLElement).closest("[data-block-id]")) setSelectedId(null);
           }}
         >
           <div
-            className={`@container mx-auto overflow-hidden rounded-lg bg-white shadow-[0_1px_3px_rgba(16,24,40,0.1)] transition-[max-width] duration-300 ${DEVICE_WIDTH[device]}`}
+            className={`@container mx-auto overflow-hidden bg-white md:rounded-lg md:shadow-[0_1px_3px_rgba(16,24,40,0.1)] transition-[max-width] duration-300 ${DEVICE_WIDTH[device]}`}
           >
             {/* Article header, as on the public page */}
             <header className="relative overflow-hidden bg-brand-ink px-6 pb-12 pt-14 text-white @xl:px-12 @xl:pb-16 @xl:pt-20">
@@ -829,7 +850,7 @@ export function PostBuilder({ post }: { post: Post | null }) {
               />
             ) : (
               <div
-                className="mx-auto max-w-3xl px-6 py-12 text-lg text-gray-700"
+                className="mx-auto max-w-3xl px-5 py-6 text-lg text-gray-700 @xl:px-6 @xl:py-12 [&>div:first-of-type>[data-block-id]]:mt-0"
                 onDragOver={(e) => {
                   if (!drag) return;
                   e.preventDefault();
@@ -899,8 +920,8 @@ export function PostBuilder({ post }: { post: Post | null }) {
                         <div
                           className={`absolute -top-[34px] left-[-6px] z-10 items-center gap-1 rounded-t-md bg-admin-blue px-1.5 py-1 text-xs font-medium text-white ${
                             isSelected
-                              ? "flex"
-                              : "hidden group-hover/block:flex group-hover/block:bg-[#84adff]"
+                              ? "hidden lg:flex"
+                              : "hidden lg:group-hover/block:flex lg:group-hover/block:bg-[#84adff]"
                           }`}
                         >
                           <span
@@ -916,7 +937,7 @@ export function PostBuilder({ post }: { post: Post | null }) {
                           {widgetOf(b.type).label}
                         </div>
                         {isSelected && (
-                          <div className="absolute -top-[34px] right-[-6px] z-10 flex items-center gap-0.5 rounded-t-md bg-admin-blue p-0.5 text-white">
+                          <div className="absolute -top-[34px] right-[-6px] z-10 hidden items-center gap-0.5 rounded-t-md bg-admin-blue p-0.5 text-white lg:flex">
                             {[
                               {
                                 icon: ArrowUp,
@@ -1003,6 +1024,108 @@ export function PostBuilder({ post }: { post: Post | null }) {
             )}
           </div>
         </main>
+
+        {!preview && !panelOpen && (
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-admin-line bg-white px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 lg:hidden">
+            {selected ? (
+              <div className="flex items-center gap-1">
+                <span className="mr-auto flex min-w-0 items-center gap-1.5 text-sm font-semibold text-admin-ink">
+                  {(() => {
+                    const Icon = widgetOf(selected.type).icon;
+                    return <Icon className="h-4 w-4 shrink-0 text-admin-blue" />;
+                  })()}
+                  <span className="truncate">{widgetOf(selected.type).label}</span>
+                </span>
+                {(() => {
+                  const i = blocks.findIndex((b) => b.id === selected.id);
+                  return [
+                    {
+                      icon: ArrowUp,
+                      label: "Lên trên",
+                      onClick: () => moveBlock(selected.id, i - 1),
+                      disabled: i === 0,
+                    },
+                    {
+                      icon: ArrowDown,
+                      label: "Xuống dưới",
+                      onClick: () => moveBlock(selected.id, i + 2),
+                      disabled: i === blocks.length - 1,
+                    },
+                    {
+                      icon: Copy,
+                      label: "Nhân bản",
+                      onClick: () => duplicateBlock(selected.id),
+                      disabled: false,
+                    },
+                    {
+                      icon: Trash2,
+                      label: "Xóa",
+                      onClick: () => deleteBlock(selected.id),
+                      disabled: false,
+                    },
+                  ].map((a) => (
+                    <button
+                      key={a.label}
+                      type="button"
+                      aria-label={a.label}
+                      title={a.label}
+                      disabled={a.disabled}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={a.onClick}
+                      className="flex h-10 w-9 items-center justify-center rounded-lg text-admin-text active:bg-admin-row disabled:opacity-35"
+                    >
+                      <a.icon className="h-[18px] w-[18px]" />
+                    </button>
+                  ));
+                })()}
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setPanel("blocks");
+                    setPanelOpen(true);
+                  }}
+                  className="admin-btn admin-btn-primary ml-1 h-10 px-3"
+                >
+                  <Settings2 className="h-4 w-4" /> Tùy chỉnh
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPanel("blocks");
+                    setPanelOpen(true);
+                  }}
+                  className="admin-btn admin-btn-primary h-10 flex-1"
+                >
+                  <Plus className="h-4 w-4" /> Thêm khối
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPanel("post");
+                    setPanelOpen(true);
+                  }}
+                  className="admin-btn admin-btn-secondary h-10"
+                >
+                  Bài viết
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPanel("score");
+                    setPanelOpen(true);
+                  }}
+                  className="admin-btn admin-btn-secondary h-10 gap-1.5"
+                >
+                  AEO <ScoreChip score={scores[lang].overall} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

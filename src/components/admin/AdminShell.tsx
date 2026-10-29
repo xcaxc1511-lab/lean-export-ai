@@ -85,7 +85,16 @@ export function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "lg"
 
 /* --------------------------------------------------------------- top bars */
 
-export function AdminTopbar({ title, tabs }: { title: string; tabs?: ReactNode }) {
+export function AdminTopbar({
+  title,
+  tabs,
+  mobileTabs = true,
+}: {
+  title: string;
+  tabs?: ReactNode;
+  /** Show the tabs as an extra row on phones (off when there is only one tab). */
+  mobileTabs?: boolean;
+}) {
   const { openMenu } = useContext(ShellContext);
   const logout = useLogout();
   return (
@@ -139,8 +148,8 @@ export function AdminTopbar({ title, tabs }: { title: string; tabs?: ReactNode }
           </DropdownMenu>
         </div>
       </div>
-      {tabs && (
-        <nav className="flex h-11 items-stretch gap-6 overflow-x-auto border-t border-admin-line px-4 md:hidden">
+      {tabs && mobileTabs && (
+        <nav className="flex h-11 items-stretch gap-6 overflow-x-auto border-t border-admin-line px-4 [scrollbar-width:none] md:hidden">
           {tabs}
         </nav>
       )}
@@ -151,11 +160,12 @@ export function AdminTopbar({ title, tabs }: { title: string; tabs?: ReactNode }
 /** Second bar ("All + Add" in GHL): smart-list tabs on the left, page actions on the right. */
 export function AdminSubbar({ tabs, actions }: { tabs: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="flex min-h-16 flex-wrap items-stretch justify-between gap-x-4 border-b border-admin-line bg-white px-2 lg:px-4">
-      <nav className="-mb-px flex min-h-12 w-full items-stretch overflow-x-auto [scrollbar-width:none] sm:w-auto">
+    <div className="flex min-h-14 items-stretch justify-between gap-x-2 border-b border-admin-line bg-white pl-1 pr-3 sm:min-h-16 lg:px-4">
+      {/* Tabs scroll sideways on phones so the actions stay on the same row. */}
+      <nav className="-mb-px flex min-w-0 flex-1 items-stretch overflow-x-auto [scrollbar-width:none]">
         {tabs}
       </nav>
-      {actions && <div className="flex items-center gap-3 px-2 py-3">{actions}</div>}
+      {actions && <div className="flex shrink-0 items-center gap-3 py-2">{actions}</div>}
     </div>
   );
 }

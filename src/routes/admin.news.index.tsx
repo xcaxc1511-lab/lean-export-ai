@@ -54,6 +54,7 @@ function NewsAdminPage() {
     <>
       <AdminTopbar
         title="Tin tức"
+        mobileTabs={false}
         tabs={
           <span className="admin-tab" aria-current="page">
             Bài viết
@@ -75,7 +76,17 @@ function NewsAdminPage() {
             </span>
           </button>
         ))}
-        actions={newPostButton}
+        actions={
+          <Link
+            to="/admin/news/$id"
+            params={{ id: "new" }}
+            className="admin-btn admin-btn-primary w-10 px-0 sm:w-auto sm:px-4"
+            aria-label="Viết bài mới"
+            title="Viết bài mới"
+          >
+            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Viết bài mới</span>
+          </Link>
+        }
       />
 
       <div className="flex-1 p-4 lg:p-6">
@@ -119,91 +130,133 @@ function NewsAdminPage() {
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="admin-table w-full min-w-[900px]">
-                  <thead>
-                    <tr>
-                      <th>Tiêu đề</th>
-                      <th>Tiêu đề tiếng Anh</th>
-                      <th>Trạng thái</th>
-                      <th title="Điểm AEO/GEO trung bình của từng bản ngôn ngữ">Điểm AEO/GEO</th>
-                      <th>Ngày</th>
-                      <th className="w-24">
-                        <span className="sr-only">Thao tác</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visible.map((post) => {
-                      const scores = scorePostBothLangs(post);
-                      const edit = () =>
-                        void navigate({ to: "/admin/news/$id", params: { id: String(post.id) } });
-                      return (
-                        <tr key={post.id} onClick={edit} className="cursor-pointer">
-                          <td className="py-2">
-                            <div className="flex items-center gap-3">
-                              <span className="flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-admin-canvas">
-                                {post.cover_url ? (
-                                  <img
-                                    src={post.cover_url}
-                                    alt=""
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <ImageOff className="h-4 w-4 text-admin-dim" />
-                                )}
-                              </span>
-                              <Link
-                                to="/admin/news/$id"
-                                params={{ id: String(post.id) }}
-                                className="max-w-[280px] truncate font-medium text-admin-ink"
-                              >
-                                {post.title_vi}
-                              </Link>
-                            </div>
-                          </td>
-                          <td className="max-w-[280px] truncate">{post.title_en}</td>
-                          <td>
-                            <PostStatusBadge published={post.status === "published"} />
-                          </td>
-                          <td>
-                            <span className="flex items-center gap-1.5">
+              <>
+                {/* Phones: one card per post instead of a sideways-scrolling table. */}
+                <ul className="divide-y divide-admin-line md:hidden">
+                  {visible.map((post) => {
+                    const scores = scorePostBothLangs(post);
+                    return (
+                      <li key={post.id}>
+                        <Link
+                          to="/admin/news/$id"
+                          params={{ id: String(post.id) }}
+                          className="flex items-start gap-3 px-3 py-3.5 active:bg-admin-row"
+                        >
+                          <span className="flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-admin-canvas">
+                            {post.cover_url ? (
+                              <img
+                                src={post.cover_url}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <ImageOff className="h-4 w-4 text-admin-dim" />
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="line-clamp-2 text-[15px] font-medium leading-snug text-admin-ink">
+                              {post.title_vi}
+                            </span>
+                            <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                              <PostStatusBadge published={post.status === "published"} />
                               <ScoreChip score={scores.vi.overall} prefix="VI" />
                               <ScoreChip score={scores.en.overall} prefix="EN" />
+                              <span className="text-xs tabular-nums text-admin-dim">
+                                {fmtDate(post.published_at ?? post.updated_at)}
+                              </span>
                             </span>
-                          </td>
-                          <td className="whitespace-nowrap tabular-nums">
-                            {fmtDate(post.published_at ?? post.updated_at)}
-                          </td>
-                          <td onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-1">
-                              <Link
-                                to="/admin/news/$id"
-                                params={{ id: String(post.id) }}
-                                aria-label="Sửa bài"
-                                title="Sửa bài"
-                                className="rounded-md p-2 text-admin-dim hover:bg-admin-canvas hover:text-admin-ink"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Link>
-                              <a
-                                href={`${import.meta.env.BASE_URL}news/${post.slug}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label="Xem trên website"
-                                title="Xem trên website"
-                                className="rounded-md p-2 text-admin-dim hover:bg-admin-canvas hover:text-admin-ink"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="admin-table w-full min-w-[900px]">
+                    <thead>
+                      <tr>
+                        <th>Tiêu đề</th>
+                        <th>Tiêu đề tiếng Anh</th>
+                        <th>Trạng thái</th>
+                        <th title="Điểm AEO/GEO trung bình của từng bản ngôn ngữ">Điểm AEO/GEO</th>
+                        <th>Ngày</th>
+                        <th className="w-24">
+                          <span className="sr-only">Thao tác</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visible.map((post) => {
+                        const scores = scorePostBothLangs(post);
+                        const edit = () =>
+                          void navigate({ to: "/admin/news/$id", params: { id: String(post.id) } });
+                        return (
+                          <tr key={post.id} onClick={edit} className="cursor-pointer">
+                            <td className="py-2">
+                              <div className="flex items-center gap-3">
+                                <span className="flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-admin-canvas">
+                                  {post.cover_url ? (
+                                    <img
+                                      src={post.cover_url}
+                                      alt=""
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <ImageOff className="h-4 w-4 text-admin-dim" />
+                                  )}
+                                </span>
+                                <Link
+                                  to="/admin/news/$id"
+                                  params={{ id: String(post.id) }}
+                                  className="max-w-[280px] truncate font-medium text-admin-ink"
+                                >
+                                  {post.title_vi}
+                                </Link>
+                              </div>
+                            </td>
+                            <td className="max-w-[280px] truncate">{post.title_en}</td>
+                            <td>
+                              <PostStatusBadge published={post.status === "published"} />
+                            </td>
+                            <td>
+                              <span className="flex items-center gap-1.5">
+                                <ScoreChip score={scores.vi.overall} prefix="VI" />
+                                <ScoreChip score={scores.en.overall} prefix="EN" />
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap tabular-nums">
+                              {fmtDate(post.published_at ?? post.updated_at)}
+                            </td>
+                            <td onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1">
+                                <Link
+                                  to="/admin/news/$id"
+                                  params={{ id: String(post.id) }}
+                                  aria-label="Sửa bài"
+                                  title="Sửa bài"
+                                  className="rounded-md p-2 text-admin-dim hover:bg-admin-canvas hover:text-admin-ink"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Link>
+                                <a
+                                  href={`${import.meta.env.BASE_URL}news/${post.slug}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label="Xem trên website"
+                                  title="Xem trên website"
+                                  className="rounded-md p-2 text-admin-dim hover:bg-admin-canvas hover:text-admin-ink"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>

@@ -675,6 +675,11 @@
     font-weight: 500;
     white-space: nowrap;
   }
+  @media (max-width: 639px) {
+    .admin-subtab {
+      padding: 0 12px;
+    }
+  }
   .admin-subtab:hover {
     color: var(--color-admin-ink);
   }

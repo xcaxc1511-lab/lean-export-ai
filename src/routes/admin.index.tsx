@@ -299,8 +299,13 @@ function EnquiriesPage() {
           </button>
         ))}
         actions={
-          <a href={csvHref} className="admin-btn admin-btn-primary">
-            <Download className="h-4 w-4" /> Xuất CSV
+          <a
+            href={csvHref}
+            className="admin-btn admin-btn-primary w-10 px-0 sm:w-auto sm:px-4"
+            aria-label="Xuất CSV"
+            title="Xuất CSV"
+          >
+            <Download className="h-4 w-4" /> <span className="hidden sm:inline">Xuất CSV</span>
           </a>
         }
       />
@@ -413,75 +418,124 @@ function EnquiriesPage() {
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="admin-table w-full min-w-[980px]">
-                  <thead>
-                    <tr>
-                      <th className="w-12">
-                        <input
-                          type="checkbox"
-                          className="admin-check align-middle"
-                          checked={allOnPage}
-                          onChange={togglePage}
-                          aria-label="Chọn tất cả trên trang"
-                        />
-                      </th>
-                      <SortHeader label="Khách hàng" k="name" sort={sort} onSort={onSort} />
-                      <th>Email</th>
-                      <SortHeader label="Quốc gia" k="country" sort={sort} onSort={onSort} />
-                      <SortHeader label="Sản phẩm" k="product" sort={sort} onSort={onSort} />
-                      <SortHeader label="Nhận lúc" k="created" sort={sort} onSort={onSort} />
-                      <SortHeader label="Trạng thái" k="status" sort={sort} onSort={onSort} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visible.map((r) => (
-                      <tr key={r.id} onClick={() => setSelectedId(r.id)} className="cursor-pointer">
-                        <td onClick={(e) => e.stopPropagation()}>
+              <>
+                {/* Phones: one card per enquiry instead of a sideways-scrolling table. */}
+                <ul className="divide-y divide-admin-line md:hidden">
+                  {visible.map((r) => (
+                    <li key={r.id} className="flex items-start gap-3 px-3 py-3.5">
+                      <input
+                        type="checkbox"
+                        className="admin-check mt-2 shrink-0"
+                        checked={checked.has(r.id)}
+                        onChange={() => toggleOne(r.id)}
+                        aria-label={`Chọn yêu cầu #${r.id}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(r.id)}
+                        className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                      >
+                        <Avatar name={r.name} />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-start justify-between gap-2">
+                            <span
+                              className={`truncate text-[15px] text-admin-ink ${
+                                r.status === "new" ? "font-semibold" : "font-medium"
+                              }`}
+                            >
+                              {displayName(r)}
+                            </span>
+                            <StatusTag status={r.status} />
+                          </span>
+                          <span className="block truncate text-sm text-admin-muted">{r.email}</span>
+                          <span className="mt-1 block truncate text-xs text-admin-dim">
+                            {[r.country, r.product].filter(Boolean).join(", ") ||
+                              (r.kind === "quote" ? "Yêu cầu báo giá" : "Liên hệ")}
+                          </span>
+                          <span className="block text-xs tabular-nums text-admin-dim">
+                            {fmtDate(r.created_at)}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="admin-table w-full min-w-[980px]">
+                    <thead>
+                      <tr>
+                        <th className="w-12">
                           <input
                             type="checkbox"
                             className="admin-check align-middle"
-                            checked={checked.has(r.id)}
-                            onChange={() => toggleOne(r.id)}
-                            aria-label={`Chọn yêu cầu #${r.id}`}
+                            checked={allOnPage}
+                            onChange={togglePage}
+                            aria-label="Chọn tất cả trên trang"
                           />
-                        </td>
-                        <td>
-                          <div className="flex items-center gap-3">
-                            <Avatar name={r.name} />
-                            {/* Real button so each row is reachable by keyboard. */}
-                            <span className="min-w-0 leading-tight">
-                              <button
-                                type="button"
-                                className={`block max-w-[200px] truncate text-left text-admin-ink ${
-                                  r.status === "new" ? "font-semibold" : ""
-                                }`}
-                              >
-                                {displayName(r)}
-                              </button>
-                              <span className="text-xs text-admin-dim">
-                                {r.kind === "quote" ? "Yêu cầu báo giá" : "Liên hệ"}
-                              </span>
-                            </span>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="flex max-w-[200px] items-center gap-2">
-                            <Mail className="h-4 w-4 shrink-0 text-admin-dim" />
-                            <span className="truncate">{r.email}</span>
-                          </span>
-                        </td>
-                        <td className="max-w-[180px] truncate">{r.country || "—"}</td>
-                        <td className="max-w-[180px] truncate">{r.product || "—"}</td>
-                        <td className="whitespace-nowrap tabular-nums">{fmtDate(r.created_at)}</td>
-                        <td>
-                          <StatusTag status={r.status} />
-                        </td>
+                        </th>
+                        <SortHeader label="Khách hàng" k="name" sort={sort} onSort={onSort} />
+                        <th>Email</th>
+                        <SortHeader label="Quốc gia" k="country" sort={sort} onSort={onSort} />
+                        <SortHeader label="Sản phẩm" k="product" sort={sort} onSort={onSort} />
+                        <SortHeader label="Nhận lúc" k="created" sort={sort} onSort={onSort} />
+                        <SortHeader label="Trạng thái" k="status" sort={sort} onSort={onSort} />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {visible.map((r) => (
+                        <tr
+                          key={r.id}
+                          onClick={() => setSelectedId(r.id)}
+                          className="cursor-pointer"
+                        >
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              className="admin-check align-middle"
+                              checked={checked.has(r.id)}
+                              onChange={() => toggleOne(r.id)}
+                              aria-label={`Chọn yêu cầu #${r.id}`}
+                            />
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-3">
+                              <Avatar name={r.name} />
+                              {/* Real button so each row is reachable by keyboard. */}
+                              <span className="min-w-0 leading-tight">
+                                <button
+                                  type="button"
+                                  className={`block max-w-[200px] truncate text-left text-admin-ink ${
+                                    r.status === "new" ? "font-semibold" : ""
+                                  }`}
+                                >
+                                  {displayName(r)}
+                                </button>
+                                <span className="text-xs text-admin-dim">
+                                  {r.kind === "quote" ? "Yêu cầu báo giá" : "Liên hệ"}
+                                </span>
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="flex max-w-[200px] items-center gap-2">
+                              <Mail className="h-4 w-4 shrink-0 text-admin-dim" />
+                              <span className="truncate">{r.email}</span>
+                            </span>
+                          </td>
+                          <td className="max-w-[180px] truncate">{r.country || "—"}</td>
+                          <td className="max-w-[180px] truncate">{r.product || "—"}</td>
+                          <td className="whitespace-nowrap tabular-nums">
+                            {fmtDate(r.created_at)}
+                          </td>
+                          <td>
+                            <StatusTag status={r.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
 
@@ -653,7 +707,8 @@ function EnquiryDetail({ enquiry: e, onDone }: { enquiry: Enquiry; onDone: () =>
             className="admin-input"
           />
         </label>
-        <div className="flex items-center gap-3">
+        {/* Stays at the bottom of the panel so Save is always reachable on phones. */}
+        <div className="sticky bottom-0 -mx-6 -mb-6 flex items-center gap-3 border-t border-admin-line bg-admin-row px-6 py-4">
           <button
             type="button"
             className="admin-btn admin-btn-primary"
