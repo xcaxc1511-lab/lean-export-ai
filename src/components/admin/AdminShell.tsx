@@ -12,6 +12,9 @@ import {
   Building2,
   ChevronLeft,
   ExternalLink,
+  History,
+  UserCog,
+  UserRound,
   Globe,
   Inbox,
   LogOut,
@@ -31,13 +34,24 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { adminLogout } from "@/functions/admin";
 import { businessConfig } from "@/config/business";
+import { ROLE_LABEL, canAccess, homeFor, type Area, type Role } from "@/lib/roles";
 
 const colourLogo = `${import.meta.env.BASE_URL}lean-export-logo.png`;
 const siteHref = import.meta.env.BASE_URL;
 const COLLAPSE_KEY = "admin-sidebar-collapsed";
 
-/** Lets the top bar open the mobile sidebar that lives in the layout. */
-const ShellContext = createContext<{ openMenu: () => void }>({ openMenu: () => {} });
+/** The signed-in admin, as the shell needs it. */
+export interface ShellUser {
+  name: string;
+  email: string;
+  role: Role;
+}
+
+/** Lets the top bar open the mobile sidebar and show who is signed in. */
+const ShellContext = createContext<{ openMenu: () => void; user: ShellUser | null }>({
+  openMenu: () => {},
+  user: null,
+});
 
 function useLogout() {
   const router = useRouter();
@@ -96,7 +110,7 @@ export function AdminTopbar({
   /** Show the tabs as an extra row on phones (off when there is only one tab). */
   mobileTabs?: boolean;
 }) {
-  const { openMenu } = useContext(ShellContext);
+  const { openMenu, user } = useContext(ShellContext);
   const logout = useLogout();
   return (
     <header className="sticky top-0 z-30 border-b border-admin-line bg-white">
@@ -129,14 +143,24 @@ export function AdminTopbar({
               aria-label="Tài khoản"
               className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#b692f6] text-sm font-semibold text-white outline-none hover:brightness-95 focus-visible:ring-4 focus-visible:ring-[#b692f6]/30"
             >
-              AD
+              {initials(user?.name ?? "")}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-60">
               <DropdownMenuLabel className="font-normal">
-                <span className="block font-semibold text-admin-ink">Quản trị viên</span>
-                <span className="block text-xs text-admin-dim">{businessConfig.businessName}</span>
+                <span className="block truncate font-semibold text-admin-ink">{user?.name}</span>
+                <span className="block truncate text-xs text-admin-dim">{user?.email}</span>
+                {user && (
+                  <span className="mt-1.5 inline-flex rounded-full bg-admin-blue-soft px-2 py-0.5 text-xs font-medium text-admin-blue">
+                    {ROLE_LABEL[user.role]}
+                  </span>
+                )}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/admin/account">
+                  <UserRound className="mr-2 h-4 w-4" /> Tài khoản của tôi
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a href={siteHref} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" /> Xem website
@@ -177,12 +201,14 @@ function SidebarBody({
   collapsed,
   newCount,
   chatUnread,
+  role,
   onNavigate,
   onToggle,
 }: {
   collapsed: boolean;
   newCount: number;
   chatUnread: number;
+  role: Role;
   onNavigate?: () => void;
   onToggle?: () => void;
 }) {
@@ -213,23 +239,84 @@ function SidebarBody({
     onNavigate?.();
   };
 
-  const items = [
-    { to: "/admin", label: "Yêu cầu báo giá", icon: Inbox, exact: true, badge: newCount },
+  const canSearch = canAccess(role, "enquiries");
+  type Item = {
+    to: "/admin" | "/admin/chats" | "/admin/news" | "/admin/users" | "/admin/activity";
+    label: string;
+    icon: typeof Inbox;
+    exact: boolean;
+    badge: number;
+    area: Area;
+  };
+  const work: Item[] = [
+    {
+      to: "/admin",
+      label: "Yêu cầu báo giá",
+      icon: Inbox,
+      exact: true,
+      badge: newCount,
+      area: "enquiries",
+    },
     {
       to: "/admin/chats",
       label: "Hội thoại",
       icon: MessagesSquare,
       exact: false,
       badge: chatUnread,
+      area: "chats",
     },
-    { to: "/admin/news", label: "Tin tức", icon: Newspaper, exact: false, badge: 0 },
-  ] as const;
+    { to: "/admin/news", label: "Tin tức", icon: Newspaper, exact: false, badge: 0, area: "posts" },
+  ];
+  const manage: Item[] = [
+    {
+      to: "/admin/users",
+      label: "Tài khoản",
+      icon: UserCog,
+      exact: false,
+      badge: 0,
+      area: "users",
+    },
+    {
+      to: "/admin/activity",
+      label: "Nhật ký hoạt động",
+      icon: History,
+      exact: false,
+      badge: 0,
+      area: "audit",
+    },
+  ];
+  const visible = (list: Item[]) => list.filter((i) => canAccess(role, i.area));
+
+  const renderItem = (item: Item) => (
+    <Link
+      key={item.to}
+      to={item.to}
+      activeOptions={{ exact: item.exact, includeSearch: false }}
+      onClick={onNavigate}
+      title={collapsed ? item.label : undefined}
+      className={`admin-side-link ${collapsed ? "relative justify-center px-0" : ""}`}
+    >
+      <item.icon className="h-5 w-5 shrink-0" />
+      {!collapsed && item.label}
+      {item.badge > 0 &&
+        (collapsed ? (
+          <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-primary" />
+        ) : (
+          <span
+            className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-admin-ink"
+            title={`${item.badge} mục mới`}
+          >
+            {item.badge}
+          </span>
+        ))}
+    </Link>
+  );
 
   return (
     <div className="flex h-full flex-col px-3 pb-4 pt-5 text-[#e4e7ec]">
       {/* Logo tile */}
       <Link
-        to="/admin"
+        to={homeFor(role)}
         onClick={onNavigate}
         className={`mx-auto mb-5 flex items-center justify-center rounded bg-white ${
           collapsed ? "h-11 w-11" : "h-14 w-36"
@@ -259,8 +346,8 @@ function SidebarBody({
         </div>
       )}
 
-      {/* Search */}
-      {collapsed ? (
+      {/* Search (enquiries) */}
+      {!canSearch ? null : collapsed ? (
         <button
           type="button"
           onClick={onToggle}
@@ -286,32 +373,17 @@ function SidebarBody({
         </form>
       )}
 
-      <nav className="grid gap-1">
-        {items.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            activeOptions={{ exact: item.exact, includeSearch: false }}
-            onClick={onNavigate}
-            title={collapsed ? item.label : undefined}
-            className={`admin-side-link ${collapsed ? "relative justify-center px-0" : ""}`}
-          >
-            <item.icon className="h-5 w-5 shrink-0" />
-            {!collapsed && item.label}
-            {item.badge > 0 &&
-              (collapsed ? (
-                <span className="absolute right-2 top-1.5 h-2 w-2 rounded-full bg-primary" />
-              ) : (
-                <span
-                  className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-admin-ink"
-                  title={`${item.badge} yêu cầu mới`}
-                >
-                  {item.badge}
-                </span>
-              ))}
-          </Link>
-        ))}
-      </nav>
+      <nav className="grid gap-1">{visible(work).map(renderItem)}</nav>
+
+      {visible(manage).length > 0 && (
+        <>
+          {!collapsed && (
+            <p className="mb-1 mt-5 px-3 text-xs font-medium text-[#98a2b3]">Quản trị hệ thống</p>
+          )}
+          {collapsed && <div className="my-3 border-t border-admin-side-line" />}
+          <nav className="grid gap-1">{visible(manage).map(renderItem)}</nav>
+        </>
+      )}
 
       <div className="my-4 border-t border-admin-side-line" />
 
@@ -340,10 +412,12 @@ function SidebarBody({
 }
 
 export function AdminFrame({
+  user,
   newCount,
   chatUnread,
   children,
 }: {
+  user: ShellUser;
   newCount: number;
   chatUnread: number;
   children: ReactNode;
@@ -370,7 +444,7 @@ export function AdminFrame({
     });
 
   return (
-    <ShellContext.Provider value={{ openMenu: () => setMenuOpen(true) }}>
+    <ShellContext.Provider value={{ openMenu: () => setMenuOpen(true), user }}>
       <div className="flex min-h-screen bg-admin-canvas text-admin-ink">
         <aside
           className={`sticky top-0 hidden h-screen shrink-0 bg-admin-side transition-[width] duration-200 lg:block ${
@@ -381,6 +455,7 @@ export function AdminFrame({
             collapsed={collapsed}
             newCount={newCount}
             chatUnread={chatUnread}
+            role={user.role}
             onToggle={toggle}
           />
           <button
@@ -402,6 +477,7 @@ export function AdminFrame({
               collapsed={false}
               newCount={newCount}
               chatUnread={chatUnread}
+              role={user.role}
               onNavigate={() => setMenuOpen(false)}
             />
           </SheetContent>

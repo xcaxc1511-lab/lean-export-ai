@@ -260,6 +260,7 @@ export function buildArticleSchema(post: {
   inLanguage: string[];
   publishedAt: string | null;
   updatedAt: string;
+  author?: { name: string; title: string | null } | null;
 }) {
   const organization = {
     "@type": "Organization",
@@ -278,7 +279,15 @@ export function buildArticleSchema(post: {
     datePublished: post.publishedAt ?? post.updatedAt,
     dateModified: post.updatedAt,
     mainEntityOfPage: buildUrl(`/news/${post.slug}`),
-    author: organization,
+    // A named writer when the post has one; otherwise the company.
+    author: post.author
+      ? {
+          "@type": "Person",
+          name: post.author.name,
+          ...(post.author.title && { jobTitle: post.author.title }),
+          worksFor: { "@type": "Organization", name: businessConfig.businessName },
+        }
+      : organization,
     publisher: organization,
   };
 }

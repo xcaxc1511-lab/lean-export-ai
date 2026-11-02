@@ -77,7 +77,47 @@ const SCHEMA = [
     created_at TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages (session_id, id)`,
+  // Admin accounts (see src/server/auth.ts). session_version bumps log out every device.
+  `CREATE TABLE IF NOT EXISTS admin_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    title TEXT,
+    role TEXT NOT NULL DEFAULT 'editor',
+    status TEXT NOT NULL DEFAULT 'active',
+    password_hash TEXT NOT NULL,
+    session_version INTEGER NOT NULL DEFAULT 1,
+    last_login_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT,
+    ip TEXT,
+    success INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_login_attempts_email ON login_attempts (email, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts (ip, created_at)`,
+  `CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    user_name TEXT,
+    action TEXT NOT NULL,
+    target TEXT,
+    detail TEXT,
+    ip TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log (created_at)`,
 ];
+
+/**
+ * Columns added after a table first shipped. SQLite has no "ADD COLUMN IF NOT
+ * EXISTS", so each runs once and "duplicate column" errors are ignored.
+ */
+const MIGRATIONS = [`ALTER TABLE posts ADD COLUMN author_id INTEGER`];
 
 function d1Adapter(d1: NonNullable<ReturnType<typeof cloudflareEnv>>["DB"] & object): Db {
   const stmt = (sql: string, params: unknown[] = []) =>
@@ -143,6 +183,13 @@ async function connect(): Promise<Db> {
   const d1 = cloudflareEnv()?.DB;
   const db = d1 ? d1Adapter(d1) : await nodeSqliteAdapter();
   for (const statement of SCHEMA) await db.run(statement);
+  for (const statement of MIGRATIONS) {
+    try {
+      await db.run(statement);
+    } catch (error) {
+      if (!/duplicate column/i.test(String(error))) throw error;
+    }
+  }
   return db;
 }
 

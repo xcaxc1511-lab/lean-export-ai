@@ -1,8 +1,49 @@
-import { clearSession, getSession, updateSession } from "@tanstack/react-start/server";
+import {
+  clearSession,
+  getRequestHeader,
+  getRequestIP,
+  getSession,
+  updateSession,
+} from "@tanstack/react-start/server";
+import { canAccess, type Area, type Role } from "@/lib/roles";
+import { getDb } from "./db";
 import { getEnv, isProduction } from "./env";
 
-/** `pw` is a fingerprint of the admin password, so changing the password logs out every session. */
-type AdminSession = { admin?: boolean; at?: number; pw?: string };
+/**
+ * Admin accounts: each person signs in with their own email + password.
+ * The sealed session cookie holds the user id and the account's
+ * session_version, so disabling an account or changing its password signs it
+ * out everywhere. ADMIN_PASSWORD is only the key for creating the first
+ * account (and stays a recovery path while no account exists).
+ */
+
+type AdminSession = { uid?: number; v?: number; at?: number };
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  name: string;
+  title: string | null;
+  role: Role;
+  status: "active" | "disabled";
+  last_login_at: string | null;
+  created_at: string;
+}
+
+interface UserRow extends AdminUser {
+  password_hash: string;
+  session_version: number;
+}
+
+const USER_COLS = "id, email, name, title, role, status, last_login_at, created_at";
+
+const LOCKOUT = {
+  windowMinutes: 15,
+  /** Failed attempts on one email before it is locked for the window. */
+  perEmail: 5,
+  /** Failed attempts from one IP before it is blocked for the window. */
+  perIp: 20,
+};
 
 const DEV_SECRET = "local-dev-only-session-secret-not-for-production-use";
 
@@ -21,7 +62,47 @@ function sessionConfig() {
   };
 }
 
-/** Constant-time string comparison (avoids leaking the password via timing). */
+export const requestIp = () =>
+  getRequestHeader("cf-connecting-ip") ?? getRequestIP({ xForwardedFor: true }) ?? null;
+
+/* ---------------------------------------------------------- passwords */
+
+// Cloudflare Workers caps PBKDF2 at 100k iterations.
+const PBKDF2_ITERATIONS = 100_000;
+
+const toHex = (buf: ArrayBuffer | Uint8Array) =>
+  Array.from(buf instanceof Uint8Array ? buf : new Uint8Array(buf), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
+const fromHex = (hex: string) =>
+  new Uint8Array(hex.match(/../g)?.map((h) => parseInt(h, 16)) ?? []);
+
+async function pbkdf2(password: string, salt: Uint8Array<ArrayBuffer>, iterations: number) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  return crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, 256);
+}
+
+/** "pbkdf2$<iterations>$<salt hex>$<hash hex>" */
+export async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const hash = await pbkdf2(password, salt, PBKDF2_ITERATIONS);
+  return `pbkdf2$${PBKDF2_ITERATIONS}$${toHex(salt)}$${toHex(hash)}`;
+}
+
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const [scheme, iter, salt, hash] = stored.split("$");
+  if (scheme !== "pbkdf2" || !iter || !salt || !hash) return false;
+  const actual = toHex(await pbkdf2(password, fromHex(salt), Number(iter)));
+  return safeEqual(actual, hash);
+}
+
+/** Constant-time string comparison (avoids leaking secrets via timing). */
 async function safeEqual(a: string, b: string): Promise<boolean> {
   const enc = new TextEncoder();
   const [ha, hb] = await Promise.all([
@@ -35,54 +116,198 @@ async function safeEqual(a: string, b: string): Promise<boolean> {
   return diff === 0;
 }
 
-/** One-way fingerprint of the current admin password (never stores the password itself). */
-async function passwordFingerprint(): Promise<string | null> {
-  const password = getEnv("ADMIN_PASSWORD");
-  if (!password) return null;
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(`${sessionConfig().password}:${password}`),
-  );
-  return Array.from(new Uint8Array(digest).slice(0, 16), (b) =>
-    b.toString(16).padStart(2, "0"),
-  ).join("");
+/** Minimum password rule shared by setup, account creation and changes. */
+export const PASSWORD_MIN = 10;
+
+/* ----------------------------------------------------------- sessions */
+
+export async function currentUser(): Promise<AdminUser | null> {
+  try {
+    const session = await getSession<AdminSession>(sessionConfig());
+    if (!session.data.uid) return null;
+    const db = await getDb();
+    const row = await db.first<UserRow>(
+      `SELECT ${USER_COLS}, session_version FROM admin_users WHERE id = ?`,
+      [session.data.uid],
+    );
+    if (!row || row.status !== "active" || row.session_version !== session.data.v) return null;
+    const { session_version: _v, ...user } = row;
+    return user;
+  } catch {
+    return null;
+  }
 }
 
 export async function isAdmin(): Promise<boolean> {
-  try {
-    const session = await getSession<AdminSession>(sessionConfig());
-    if (session.data.admin !== true) return false;
-    // Sessions created before the password changed are no longer valid.
-    const current = await passwordFingerprint();
-    return current !== null && session.data.pw === current;
-  } catch {
-    return false;
-  }
+  return (await currentUser()) !== null;
 }
 
-export async function requireAdmin(): Promise<void> {
-  if (!(await isAdmin())) throw new Error("UNAUTHORIZED");
+/** Signed-in user allowed in `area`; throws UNAUTHORIZED / FORBIDDEN otherwise. */
+export async function requireAdmin(area?: Area): Promise<AdminUser> {
+  const user = await currentUser();
+  if (!user) throw new Error("UNAUTHORIZED");
+  if (area && !canAccess(user.role, area)) throw new Error("FORBIDDEN");
+  return user;
 }
 
-export async function loginAdmin(password: string): Promise<boolean> {
-  const expected = getEnv("ADMIN_PASSWORD");
-  if (!expected) {
-    console.error("[auth] ADMIN_PASSWORD is not set — admin login is disabled.");
-    return false;
-  }
-  if (!(await safeEqual(password, expected))) {
-    // Slow down brute-force attempts.
-    await new Promise((r) => setTimeout(r, 600));
-    return false;
-  }
+async function startSession(user: { id: number; session_version: number }) {
   await updateSession<AdminSession>(sessionConfig(), {
-    admin: true,
+    uid: user.id,
+    v: user.session_version,
     at: Date.now(),
-    pw: (await passwordFingerprint()) ?? "",
   });
-  return true;
+}
+
+/** Re-issue the current browser's session after the user's session_version changed. */
+export async function refreshSession(userId: number) {
+  const db = await getDb();
+  const row = await db.first<{ id: number; session_version: number }>(
+    "SELECT id, session_version FROM admin_users WHERE id = ?",
+    [userId],
+  );
+  if (row) await startSession(row);
 }
 
 export async function logoutAdmin(): Promise<void> {
   await clearSession(sessionConfig());
+}
+
+/* ------------------------------------------------------------- login */
+
+export async function needsSetup(): Promise<boolean> {
+  const db = await getDb();
+  const row = await db.first<{ n: number }>("SELECT COUNT(*) AS n FROM admin_users");
+  return (row?.n ?? 0) === 0;
+}
+
+export type LoginResult =
+  { ok: true; user: AdminUser } | { ok: false; error: "invalid" | "locked" | "setup" };
+
+async function recentFailures(column: "email" | "ip", value: string) {
+  const db = await getDb();
+  const since = new Date(Date.now() - LOCKOUT.windowMinutes * 60_000).toISOString();
+  // Count failures since the last success for this email/IP.
+  const row = await db.first<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM login_attempts
+     WHERE ${column} = ? AND success = 0 AND created_at > ?
+       AND created_at > COALESCE((SELECT MAX(created_at) FROM login_attempts WHERE ${column} = ? AND success = 1), '')`,
+    [value, since, value],
+  );
+  return row?.n ?? 0;
+}
+
+export async function loginAdmin(emailInput: string, password: string): Promise<LoginResult> {
+  const db = await getDb();
+  if (await needsSetup()) return { ok: false, error: "setup" };
+
+  const email = emailInput.trim().toLowerCase();
+  const ip = requestIp();
+  if (
+    (await recentFailures("email", email)) >= LOCKOUT.perEmail ||
+    (ip && (await recentFailures("ip", ip)) >= LOCKOUT.perIp)
+  ) {
+    return { ok: false, error: "locked" };
+  }
+
+  const row = await db.first<UserRow>(
+    `SELECT ${USER_COLS}, password_hash, session_version FROM admin_users WHERE email = ?`,
+    [email],
+  );
+  const valid =
+    row && row.status === "active" && (await verifyPassword(password, row.password_hash));
+  const at = new Date().toISOString();
+  await db.run("INSERT INTO login_attempts (email, ip, success, created_at) VALUES (?, ?, ?, ?)", [
+    email,
+    ip,
+    valid ? 1 : 0,
+    at,
+  ]);
+  if (!valid || !row) {
+    // Slow down guessing.
+    await new Promise((r) => setTimeout(r, 600));
+    return { ok: false, error: "invalid" };
+  }
+
+  await db.run("UPDATE admin_users SET last_login_at = ? WHERE id = ?", [at, row.id]);
+  await startSession(row);
+  const { password_hash: _h, session_version: _v, ...user } = row;
+  return { ok: true, user };
+}
+
+/** First run: create the owner account, guarded by the ADMIN_PASSWORD setup key. */
+export async function setupFirstAdmin(input: {
+  setupKey: string;
+  email: string;
+  name: string;
+  password: string;
+}): Promise<{ ok: true; user: AdminUser } | { ok: false; error: "invalid_key" | "done" }> {
+  if (!(await needsSetup())) return { ok: false, error: "done" };
+  const key = getEnv("ADMIN_PASSWORD");
+  if (!key || !(await safeEqual(input.setupKey, key))) {
+    await new Promise((r) => setTimeout(r, 600));
+    return { ok: false, error: "invalid_key" };
+  }
+  const user = await createUserRecord({ ...input, role: "admin" });
+  const db = await getDb();
+  await db.run("UPDATE admin_users SET last_login_at = ? WHERE id = ?", [
+    new Date().toISOString(),
+    user.id,
+  ]);
+  const row = await db.first<{ id: number; session_version: number }>(
+    "SELECT id, session_version FROM admin_users WHERE id = ?",
+    [user.id],
+  );
+  if (row) await startSession(row);
+  return { ok: true, user };
+}
+
+export async function createUserRecord(input: {
+  email: string;
+  name: string;
+  password: string;
+  role: Role;
+  title?: string | undefined;
+}): Promise<AdminUser> {
+  const db = await getDb();
+  const at = new Date().toISOString();
+  const email = input.email.trim().toLowerCase();
+  const exists = await db.first("SELECT id FROM admin_users WHERE email = ?", [email]);
+  if (exists) throw new Error("EMAIL_TAKEN");
+  const { lastId } = await db.run(
+    `INSERT INTO admin_users (email, name, title, role, password_hash, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      email,
+      input.name.trim(),
+      input.title?.trim() || null,
+      input.role,
+      await hashPassword(input.password),
+      at,
+      at,
+    ],
+  );
+  const user = await db.first<AdminUser>(`SELECT ${USER_COLS} FROM admin_users WHERE id = ?`, [
+    lastId,
+  ]);
+  if (!user) throw new Error("CREATE_FAILED");
+  return user;
+}
+
+/** Check a user's current password (for "change my password"). */
+export async function checkPassword(userId: number, password: string): Promise<boolean> {
+  const db = await getDb();
+  const row = await db.first<{ password_hash: string }>(
+    "SELECT password_hash FROM admin_users WHERE id = ?",
+    [userId],
+  );
+  return !!row && verifyPassword(password, row.password_hash);
+}
+
+/** Set a new password and sign the account out on every device. */
+export async function setPassword(userId: number, password: string) {
+  const db = await getDb();
+  await db.run(
+    "UPDATE admin_users SET password_hash = ?, session_version = session_version + 1, updated_at = ? WHERE id = ?",
+    [await hashPassword(password), new Date().toISOString(), userId],
+  );
 }

@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getDb } from "@/server/db";
-import { isAdmin, requireAdmin } from "@/server/auth";
+import { currentUser, requireAdmin } from "@/server/auth";
+import { canAccess } from "@/lib/roles";
+import { audit } from "@/server/audit";
 
 export interface Post {
   id: number;
@@ -17,6 +19,13 @@ export interface Post {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  author_id: number | null;
+}
+
+/** Public byline, from the admin account that wrote the post. */
+export interface PostAuthor {
+  name: string;
+  title: string | null;
 }
 
 export type PostSummary = Omit<Post, "body_en" | "body_vi">;
@@ -56,10 +65,19 @@ export const getPostBySlug = createServerFn({ method: "GET" })
   .validator((data: unknown) => z.object({ slug: z.string().min(1).max(120) }).parse(data))
   .handler(async ({ data }) => {
     const db = await getDb();
-    const post = await db.first<Post>("SELECT * FROM posts WHERE slug = ?", [data.slug]);
+    const post = await db.first<Post & { author_name: string | null; author_title: string | null }>(
+      `SELECT p.*, u.name AS author_name, u.title AS author_title
+       FROM posts p LEFT JOIN admin_users u ON u.id = p.author_id WHERE p.slug = ?`,
+      [data.slug],
+    );
     if (!post) return null;
-    if (post.status !== "published" && !(await isAdmin())) return null;
-    return post;
+    if (post.status !== "published" && !canAccess((await currentUser())?.role, "posts"))
+      return null;
+    const { author_name, author_title, ...rest } = post;
+    const author: PostAuthor | null = author_name
+      ? { name: author_name, title: author_title }
+      : null;
+    return { ...rest, author };
   });
 
 /** Admin: all posts. */
@@ -74,7 +92,7 @@ export const listAllPosts = createServerFn({ method: "GET" }).handler(async () =
 export const getPostById = createServerFn({ method: "GET" })
   .validator((data: unknown) => z.object({ id: z.number().int().positive() }).parse(data))
   .handler(async ({ data }) => {
-    await requireAdmin();
+    await requireAdmin("posts");
     const db = await getDb();
     return db.first<Post>("SELECT * FROM posts WHERE id = ?", [data.id]);
   });
@@ -105,7 +123,7 @@ export type PostInput = z.input<typeof postInput>;
 export const savePost = createServerFn({ method: "POST" })
   .validator((data: unknown) => postInput.parse(data))
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const user = await requireAdmin("posts");
     const db = await getDb();
     const now = new Date().toISOString();
 
@@ -150,23 +168,40 @@ export const savePost = createServerFn({ method: "POST" })
          WHERE id = ?`,
         [...values, existing.id],
       );
+      await audit(user, postAction(existing.status, data.status), data.title_vi, `/news/${slug}`);
       return { id: existing.id, slug };
     }
     const { lastId } = await db.run(
       `INSERT INTO posts (slug, title_en, title_vi, excerpt_en, excerpt_vi, body_en, body_vi,
-         cover_url, status, published_at, updated_at, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [...values, now],
+         cover_url, status, published_at, updated_at, created_at, author_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [...values, now, user.id],
+    );
+    await audit(
+      user,
+      data.status === "published" ? "post.publish" : "post.create",
+      data.title_vi,
+      `/news/${slug}`,
     );
     return { id: lastId, slug };
   });
+
+function postAction(before: string, after: string) {
+  if (before !== "published" && after === "published") return "post.publish";
+  if (before === "published" && after !== "published") return "post.unpublish";
+  return "post.update";
+}
 
 /** Admin: delete a post. */
 export const deletePost = createServerFn({ method: "POST" })
   .validator((data: unknown) => z.object({ id: z.number().int().positive() }).parse(data))
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const user = await requireAdmin("posts");
     const db = await getDb();
+    const row = await db.first<{ title_vi: string }>("SELECT title_vi FROM posts WHERE id = ?", [
+      data.id,
+    ]);
     await db.run("DELETE FROM posts WHERE id = ?", [data.id]);
+    await audit(user, "post.delete", row?.title_vi ?? `#${data.id}`);
     return { ok: true as const };
   });

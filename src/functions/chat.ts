@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/server/db";
 import { getEnv } from "@/server/env";
 import { requireAdmin } from "@/server/auth";
+import { audit } from "@/server/audit";
 import { askAssistant, assistantConfigured, type AssistantTurn } from "@/server/assistant";
 import { emailLayout, escapeHtml, sendMail } from "@/server/email";
 import { businessConfig } from "@/config/business";
@@ -314,7 +315,7 @@ export const listChats = createServerFn({ method: "GET" })
       .parse(data ?? {}),
   )
   .handler(async ({ data }) => {
-    await requireAdmin();
+    await requireAdmin("chats");
     const db = await getDb();
     const where: string[] = [];
     const params: unknown[] = [];
@@ -351,7 +352,7 @@ export const listChats = createServerFn({ method: "GET" })
 export const getChat = createServerFn({ method: "GET" })
   .validator((data: unknown) => z.object({ id: z.string().max(64) }).parse(data))
   .handler(async ({ data }) => {
-    await requireAdmin();
+    await requireAdmin("chats");
     const db = await getDb();
     const session = await db.first<ChatSessionRow>(
       `SELECT id, channel, lang, page, name, email, phone, status, ai_paused, unread, enquiry_id, created_at, updated_at
@@ -369,10 +370,11 @@ export const replyChat = createServerFn({ method: "POST" })
     z.object({ id: z.string().max(64), content: z.string().trim().min(1).max(4000) }).parse(data),
   )
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const user = await requireAdmin("chats");
     const db = await getDb();
     await addMessage(data.id, "agent", data.content);
     await db.run("UPDATE chat_sessions SET ai_paused = 1, unread = 0 WHERE id = ?", [data.id]);
+    await audit(user, "chat.reply", data.id.slice(0, 8), data.content.slice(0, 120));
     return { ok: true as const };
   });
 
@@ -387,8 +389,10 @@ export const updateChat = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const user = await requireAdmin("chats");
     const db = await getDb();
+    if (data.aiPaused !== undefined)
+      await audit(user, "chat.ai", data.id.slice(0, 8), data.aiPaused ? "tắt AI" : "bật AI");
     if (data.aiPaused !== undefined)
       await db.run("UPDATE chat_sessions SET ai_paused = ? WHERE id = ?", [
         data.aiPaused ? 1 : 0,
@@ -402,9 +406,10 @@ export const updateChat = createServerFn({ method: "POST" })
 export const deleteChat = createServerFn({ method: "POST" })
   .validator((data: unknown) => z.object({ id: z.string().max(64) }).parse(data))
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const user = await requireAdmin("chats");
     const db = await getDb();
     await db.run("DELETE FROM chat_messages WHERE session_id = ?", [data.id]);
+    await audit(user, "chat.delete", data.id.slice(0, 8));
     await db.run("DELETE FROM chat_sessions WHERE id = ?", [data.id]);
     return { ok: true as const };
   });

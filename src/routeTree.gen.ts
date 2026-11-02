@@ -21,7 +21,10 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAccountRouteImport } from './routes/admin.account'
+import { Route as AdminActivityRouteImport } from './routes/admin.activity'
 import { Route as AdminChatsRouteImport } from './routes/admin.chats'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AreasAreaIdRouteImport } from './routes/areas.$areaId'
 import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
@@ -90,9 +93,24 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAccountRoute = AdminAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminActivityRoute = AdminActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminChatsRoute = AdminChatsRouteImport.update({
   id: '/chats',
   path: '/chats',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
 const AreasAreaIdRoute = AreasAreaIdRouteImport.update({
@@ -143,7 +161,10 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/admin/account': typeof AdminAccountRoute
+  '/admin/activity': typeof AdminActivityRoute
   '/admin/chats': typeof AdminChatsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
@@ -164,7 +185,10 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/admin/account': typeof AdminAccountRoute
+  '/admin/activity': typeof AdminActivityRoute
   '/admin/chats': typeof AdminChatsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
@@ -187,7 +211,10 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/admin/account': typeof AdminAccountRoute
+  '/admin/activity': typeof AdminActivityRoute
   '/admin/chats': typeof AdminChatsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
@@ -211,7 +238,10 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms-and-conditions'
+    | '/admin/account'
+    | '/admin/activity'
     | '/admin/chats'
+    | '/admin/users'
     | '/areas/$areaId'
     | '/news/$slug'
     | '/services/$serviceId'
@@ -232,7 +262,10 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms-and-conditions'
+    | '/admin/account'
+    | '/admin/activity'
     | '/admin/chats'
+    | '/admin/users'
     | '/areas/$areaId'
     | '/news/$slug'
     | '/services/$serviceId'
@@ -254,7 +287,10 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms-and-conditions'
+    | '/admin/account'
+    | '/admin/activity'
     | '/admin/chats'
+    | '/admin/users'
     | '/areas/$areaId'
     | '/news/$slug'
     | '/services/$serviceId'
@@ -370,11 +406,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/account': {
+      id: '/admin/account'
+      path: '/account'
+      fullPath: '/admin/account'
+      preLoaderRoute: typeof AdminAccountRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/activity': {
+      id: '/admin/activity'
+      path: '/activity'
+      fullPath: '/admin/activity'
+      preLoaderRoute: typeof AdminActivityRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/chats': {
       id: '/admin/chats'
       path: '/chats'
       fullPath: '/admin/chats'
       preLoaderRoute: typeof AdminChatsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/areas/$areaId': {
@@ -430,14 +487,20 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminAccountRoute: typeof AdminAccountRoute
+  AdminActivityRoute: typeof AdminActivityRoute
   AdminChatsRoute: typeof AdminChatsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminNewsIdRoute: typeof AdminNewsIdRoute
   AdminNewsIndexRoute: typeof AdminNewsIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAccountRoute: AdminAccountRoute,
+  AdminActivityRoute: AdminActivityRoute,
   AdminChatsRoute: AdminChatsRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminNewsIdRoute: AdminNewsIdRoute,
   AdminNewsIndexRoute: AdminNewsIndexRoute,

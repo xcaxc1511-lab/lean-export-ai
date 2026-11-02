@@ -159,6 +159,7 @@ export function PostBuilder({ post }: { post: Post | null }) {
           published_at: status === "published" ? now : null,
           created_at: now,
           updated_at: now,
+          author_id: null,
         });
         await navigate({ to: "/admin/news/$id", params: { id: String(res.id) }, replace: true });
       }

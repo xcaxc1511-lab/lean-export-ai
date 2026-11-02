@@ -55,6 +55,19 @@ Bảng dữ liệu được **tự tạo** ở lần chạy đầu tiên — kh�
 7. **Tên miền riêng** (tùy chọn): Cloudflare Dashboard → Workers & Pages → `lean-export`
    → Settings → Domains & Routes → Add custom domain.
 
+## Tài khoản quản trị
+
+Mỗi người đăng nhập `/admin` bằng **email + mật khẩu riêng**.
+
+- Lần đầu mở `/admin` (khi chưa có tài khoản nào) sẽ hiện màn hình **Tạo tài khoản quản trị đầu tiên**:
+  nhập `ADMIN_PASSWORD` làm mật khẩu cài đặt, rồi họ tên, email và mật khẩu mới (≥ 10 ký tự).
+- Sau đó vào **Tài khoản** để thêm người khác với vai trò **Quản trị** (toàn quyền), **Biên tập viên**
+  (tin tức) hoặc **Sales** (yêu cầu báo giá + hội thoại). Khóa tài khoản hoặc đặt lại mật khẩu sẽ đăng
+  xuất người đó khỏi mọi thiết bị.
+- Đăng nhập sai 5 lần trong 15 phút sẽ khóa tài khoản đó 15 phút (một IP sai 20 lần cũng bị chặn).
+- **Nhật ký hoạt động** ghi lại đăng nhập và mọi thao tác thêm/sửa/xóa.
+- Mật khẩu được băm PBKDF2-SHA256 (100.000 vòng), không lưu dạng đọc được.
+
 ## Tự động deploy khi push lên GitHub
 
 Workflow `.github/workflows/deploy-cloudflare.yml` tự build + deploy mỗi lần push lên `main`,

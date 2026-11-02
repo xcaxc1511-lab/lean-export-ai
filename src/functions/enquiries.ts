@@ -5,6 +5,7 @@ import { businessConfig } from "@/config/business";
 import { getDb } from "@/server/db";
 import { getEnv } from "@/server/env";
 import { requireAdmin } from "@/server/auth";
+import { audit } from "@/server/audit";
 import { emailLayout, escapeHtml, sendMail } from "@/server/email";
 
 export const ENQUIRY_STATUSES = ["new", "contacted", "quoted", "won", "lost", "spam"] as const;
@@ -203,7 +204,7 @@ export function filterSql(f: z.output<typeof listInput>) {
 export const listEnquiries = createServerFn({ method: "GET" })
   .validator((data: unknown) => listInput.parse(data ?? {}))
   .handler(async ({ data }) => {
-    await requireAdmin();
+    await requireAdmin("enquiries");
     const db = await getDb();
     const { clause, params } = filterSql(data);
     const rows = await db.all<Enquiry>(
@@ -230,7 +231,7 @@ export const updateEnquiry = createServerFn({ method: "POST" })
       .parse(data),
   )
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const user = await requireAdmin("enquiries");
     const db = await getDb();
     const sets: string[] = [];
     const params: unknown[] = [];
@@ -242,8 +243,17 @@ export const updateEnquiry = createServerFn({ method: "POST" })
       sets.push("notes = ?");
       params.push(data.notes);
     }
-    if (sets.length)
+    if (sets.length) {
       await db.run(`UPDATE enquiries SET ${sets.join(", ")} WHERE id = ?`, [...params, data.id]);
+      await audit(
+        user,
+        "enquiry.update",
+        `#${data.id}`,
+        [data.status && `trạng thái → ${data.status}`, data.notes !== undefined && "sửa ghi chú"]
+          .filter(Boolean)
+          .join(", "),
+      );
+    }
     return { ok: true as const };
   });
 
@@ -251,8 +261,13 @@ export const updateEnquiry = createServerFn({ method: "POST" })
 export const deleteEnquiry = createServerFn({ method: "POST" })
   .validator((data: unknown) => z.object({ id: z.number().int().positive() }).parse(data))
   .handler(async ({ data }) => {
-    await requireAdmin();
+    const user = await requireAdmin("enquiries");
     const db = await getDb();
+    const row = await db.first<{ name: string; email: string }>(
+      "SELECT name, email FROM enquiries WHERE id = ?",
+      [data.id],
+    );
     await db.run("DELETE FROM enquiries WHERE id = ?", [data.id]);
+    await audit(user, "enquiry.delete", `#${data.id}`, row ? `${row.name} <${row.email}>` : null);
     return { ok: true as const };
   });

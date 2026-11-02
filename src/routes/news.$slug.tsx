@@ -39,6 +39,7 @@ export const Route = createFileRoute("/news/$slug")({
               ),
               publishedAt: post.published_at,
               updatedAt: post.updated_at,
+              author: post.author,
             }),
             // FAQ from the post's "FAQ / Câu hỏi thường gặp" section (English first).
             buildFaqSchema(
@@ -55,6 +56,7 @@ export const Route = createFileRoute("/news/$slug")({
 
 const copy = {
   back: { en: "All news", vi: "Tất cả tin tức" },
+  by: { en: "By", vi: "Tác giả:" },
   draft: { en: "Draft preview — not visible to visitors", vi: "Bản nháp — khách chưa xem được" },
   ctaTitle: { en: "Interested in Vietnamese coffee?", vi: "Bạn quan tâm cà phê Việt Nam?" },
   ctaBody: {
@@ -93,6 +95,12 @@ function ArticlePage() {
           <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-primary">
             {formatPostDate(post.published_at ?? post.updated_at, lang)}
           </p>
+          {post.author && (
+            <p className="mb-4 text-sm text-gray-300">
+              {t(copy.by)} <span className="font-semibold text-white">{post.author.name}</span>
+              {post.author.title ? `, ${post.author.title}` : ""}
+            </p>
+          )}
           <h1 className="mb-5 text-3xl font-bold leading-tight md:text-5xl">
             {t({ en: post.title_en, vi: post.title_vi })}
           </h1>
