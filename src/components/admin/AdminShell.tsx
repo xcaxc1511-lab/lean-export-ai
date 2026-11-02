@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ExternalLink,
   History,
+  Settings,
   UserCog,
   UserRound,
   Globe,
@@ -241,7 +242,13 @@ function SidebarBody({
 
   const canSearch = canAccess(role, "enquiries");
   type Item = {
-    to: "/admin" | "/admin/chats" | "/admin/news" | "/admin/users" | "/admin/activity";
+    to:
+      | "/admin"
+      | "/admin/chats"
+      | "/admin/news"
+      | "/admin/users"
+      | "/admin/activity"
+      | "/admin/settings";
     label: string;
     icon: typeof Inbox;
     exact: boolean;
@@ -275,6 +282,14 @@ function SidebarBody({
       exact: false,
       badge: 0,
       area: "users",
+    },
+    {
+      to: "/admin/settings",
+      label: "Cài đặt website",
+      icon: Settings,
+      exact: false,
+      badge: 0,
+      area: "settings",
     },
     {
       to: "/admin/activity",

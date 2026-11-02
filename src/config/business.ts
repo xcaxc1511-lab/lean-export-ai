@@ -14,7 +14,8 @@ export const businessConfig = {
   whatsapp: "84000000000",
   zalo: "0000000000",
   /** Production domain — single source of truth for canonical URLs, sitemap and robots.txt. */
-  website: "https://yourwebsite.com",
+  /** Default site URL; change it in /admin/settings when a custom domain is added. */
+  website: "https://lean-export.daotaoleandigi.workers.dev",
   address: "Chu Prong",
   city: "Gia Lai",
   state: "Vietnam",

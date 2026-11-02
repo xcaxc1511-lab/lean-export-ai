@@ -6,6 +6,7 @@ import { getDb } from "@/server/db";
 import { getEnv } from "@/server/env";
 import { requireAdmin } from "@/server/auth";
 import { audit } from "@/server/audit";
+import { salesRecipients } from "@/server/settings";
 import { emailLayout, escapeHtml, sendMail } from "@/server/email";
 
 export const ENQUIRY_STATUSES = ["new", "contacted", "quoted", "won", "lost", "spam"] as const;
@@ -56,14 +57,6 @@ export type EnquiryInput = z.input<typeof enquiryInput>;
 
 const RATE_LIMIT = { windowMinutes: 10, max: 5 };
 
-function salesRecipients(): string[] {
-  const configured = getEnv("SALES_EMAIL") ?? businessConfig.email;
-  return configured
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 function detailRows(e: z.output<typeof enquiryInput>) {
   return [
     ["Type", e.kind === "quote" ? "Quote request" : "Contact enquiry"],
@@ -98,7 +91,7 @@ async function notify(id: number, e: z.output<typeof enquiryInput>) {
   const label = e.kind === "quote" ? "quote request" : "enquiry";
 
   const toSales = sendMail({
-    to: salesRecipients(),
+    to: await salesRecipients(),
     replyTo: e.email,
     subject: `New ${label} #${id} — ${e.company || e.name}${e.product ? ` · ${e.product}` : ""}`,
     html: emailLayout(`New ${label} #${id}`, `<table>${table}</table>${message}`),
@@ -114,7 +107,7 @@ async function notify(id: number, e: z.output<typeof enquiryInput>) {
     : `<p>Hi ${escapeHtml(e.name)},</p><p>Thank you for contacting ${escapeHtml(businessConfig.businessName)}. Our export team will get back to you within one business day.</p><p>Your reference: <b>#${id}</b></p>`;
   const toCustomer = sendMail({
     to: e.email,
-    replyTo: salesRecipients()[0],
+    replyTo: (await salesRecipients())[0],
     subject: `${confirmTitle} (#${id})`,
     html: emailLayout(confirmTitle, confirmBody),
     text: confirmBody.replace(/<[^>]+>/g, "\n").replace(/\n+/g, "\n"),

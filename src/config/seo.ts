@@ -23,7 +23,8 @@ export interface SeoPageMeta {
   ogImage?: string;
 }
 
-const SITE_URL = (businessConfig.website || "").replace(/\/+$/, "");
+/** Site origin from settings (read on every call: the admin can change it). */
+const siteUrl = () => (businessConfig.website || "").replace(/\/+$/, "");
 
 /**
  * Default social preview image for the whole site.
@@ -32,7 +33,9 @@ const SITE_URL = (businessConfig.website || "").replace(/\/+$/, "");
 export const defaultOgImage = businessConfig.ogImageUrl || "/og-image.png";
 
 export const seoConfig = {
-  siteUrl: SITE_URL,
+  get siteUrl() {
+    return siteUrl();
+  },
   defaultImage: defaultOgImage,
   homepage: {
     title: `${businessConfig.businessName} | Vietnamese Coffee Exporter — Robusta, Arabica & OEM`,
@@ -67,9 +70,10 @@ export const seoConfig = {
 /** Build an absolute URL from a path relative to the site root. */
 export function buildUrl(path?: string): string {
   if (path && /^https?:\/\//i.test(path)) return path;
-  if (!path || path === "/") return SITE_URL || "/";
+  const site = siteUrl();
+  if (!path || path === "/") return site || "/";
   const clean = path.startsWith("/") ? path : `/${path}`;
-  return SITE_URL ? `${SITE_URL}${clean}` : clean;
+  return site ? `${site}${clean}` : clean;
 }
 
 /**
@@ -120,7 +124,7 @@ export function buildLocalBusinessSchema() {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     name: businessConfig.businessName,
-    url: SITE_URL,
+    url: siteUrl(),
     telephone: businessConfig.phone,
     email: businessConfig.email,
     address: {
@@ -170,7 +174,7 @@ export function buildWebSiteSchema() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: businessConfig.businessName,
-    url: SITE_URL,
+    url: siteUrl(),
   };
 }
 
@@ -186,7 +190,7 @@ export function buildServiceSchema(serviceSlug: string) {
     provider: {
       "@type": "LocalBusiness",
       name: businessConfig.businessName,
-      url: SITE_URL,
+      url: siteUrl(),
       telephone: businessConfig.phone,
     },
     areaServed: areasConfig.map((area) => en(area.name)),
@@ -265,7 +269,7 @@ export function buildArticleSchema(post: {
   const organization = {
     "@type": "Organization",
     name: businessConfig.businessName,
-    url: SITE_URL || undefined,
+    url: siteUrl() || undefined,
     // Colour logo: the header one is white and invisible on light backgrounds.
     logo: buildUrl("/lean-export-logo.png"),
   };
@@ -341,8 +345,8 @@ export function buildSitemapEntries(): SitemapEntry[] {
   return entries;
 }
 
-export function buildSitemapXml(): string {
-  const entries = buildSitemapEntries();
+export function buildSitemapXml(extra: SitemapEntry[] = []): string {
+  const entries = [...buildSitemapEntries(), ...extra];
   const urls = entries
     .map((e) => {
       const loc = buildUrl(e.path).replace(/&/g, "&amp;");

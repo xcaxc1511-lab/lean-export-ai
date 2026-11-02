@@ -46,6 +46,9 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
+/** SQL condition for posts the public can see. */
+export const PUBLISHED_SQL = "status = 'published'";
+
 /** Public: published posts, newest first. */
 export const listPublishedPosts = createServerFn({ method: "GET" })
   .validator((data: unknown) =>

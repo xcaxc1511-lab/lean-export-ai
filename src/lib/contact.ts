@@ -2,13 +2,10 @@ import { businessConfig } from "@/config/business";
 
 /**
  * Build a safe `tel:` href from a phone string, normalizing to E.164 format.
- *
- * Handles all common input formats without producing a malformed double
- * country code:
- *   "(217) 555-1234"   -> tel:+12175551234
- *   "217-555-1234"     -> tel:+12175551234
- *   "2175551234"       -> tel:+12175551234
- *   "+1 217-555-1234"  -> tel:+12175551234
+ * Vietnamese numbers are the default:
+ *   "0901 234 567"      -> tel:+84901234567
+ *   "+84 901 234 567"   -> tel:+84901234567
+ *   "84901234567"       -> tel:+84901234567
  *
  * Visible formatting in the UI should use the raw `businessConfig.phone`
  * value; only the `tel:` href needs to be normalized.
@@ -16,8 +13,8 @@ import { businessConfig } from "@/config/business";
 export function phoneHref(phone: string = businessConfig.phone): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.length === 0) return "tel:";
-  if (digits.length === 10) return `tel:+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `tel:+${digits}`;
+  // Domestic format (leading 0) -> Vietnam country code.
+  if (!phone.trim().startsWith("+") && digits.startsWith("0")) return `tel:+84${digits.slice(1)}`;
   return `tel:+${digits}`;
 }
 
@@ -44,5 +41,7 @@ export function whatsappHref(number: string = businessConfig.whatsapp): string {
 
 /** Zalo chat link (Vietnamese phone number, e.g. "0901234567"). */
 export function zaloHref(number: string = businessConfig.zalo): string {
-  return `https://zalo.me/${number.replace(/\D/g, "")}`;
+  // Zalo links use the domestic number (0…); accept +84… too.
+  const digits = number.replace(/\D/g, "");
+  return `https://zalo.me/${digits.startsWith("84") ? `0${digits.slice(2)}` : digits}`;
 }

@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { LangProvider } from "@/lib/i18n";
 import { seoConfig } from "@/config/seo";
+import { getPublicSettings } from "@/functions/settings";
+import { applySettings } from "@/lib/site-settings";
 import NotFound from "@/components/pages/NotFound";
 import appCss from "../styles.css?url";
 import { reportVibeError } from "../lib/vibe-error-reporting";
@@ -54,6 +56,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Contact details edited in /admin/settings; applied before any page renders.
+  loader: async () => {
+    const settings = await getPublicSettings().catch(() => null);
+    applySettings(settings);
+    return { settings };
+  },
+  staleTime: 5 * 60_000,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -97,6 +106,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // Hydration does not re-run the loader, so apply the settings here too.
+  applySettings(Route.useLoaderData()?.settings);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -68,10 +68,9 @@ const CHAT_STYLE = `Format: plain text for a small chat window. Short paragraphs
 
 const VOICE_STYLE = `Format: this is a live voice call — your reply is read aloud by text-to-speech. Answer in one to three short spoken sentences. No lists, symbols, URLs, emoji or Markdown. Say numbers the way a person would say them.`;
 
-let cachedSystem: string | null = null;
+/** Rebuilt per request so edited contact details show up; identical text keeps the prompt cache warm. */
 function systemPrompt(): string {
-  cachedSystem ??= `${RULES}\n\n<knowledge>\n${knowledge()}\n</knowledge>`;
-  return cachedSystem;
+  return `${RULES}\n\n<knowledge>\n${knowledge()}\n</knowledge>`;
 }
 
 export function assistantConfigured(): boolean {

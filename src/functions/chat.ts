@@ -5,6 +5,7 @@ import { getDb } from "@/server/db";
 import { getEnv } from "@/server/env";
 import { requireAdmin } from "@/server/auth";
 import { audit } from "@/server/audit";
+import { ensureSettings, salesRecipients } from "@/server/settings";
 import { askAssistant, assistantConfigured, type AssistantTurn } from "@/server/assistant";
 import { emailLayout, escapeHtml, sendMail } from "@/server/email";
 import { businessConfig } from "@/config/business";
@@ -173,6 +174,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
 
     let reply: string | null = null;
     if (!session.ai_paused) {
+      await ensureSettings(); // the assistant quotes the current contact details
       const history = await db.all<AssistantTurn>(
         `SELECT role, content FROM (
            SELECT id, role, content FROM chat_messages WHERE session_id = ? ORDER BY id DESC LIMIT ?
@@ -281,10 +283,7 @@ export const saveChatContact = createServerFn({ method: "POST" })
       [data.name, email || null, data.phone || null, enquiryId, now(), session.id],
     );
 
-    const to = (getEnv("SALES_EMAIL") ?? businessConfig.email)
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const to = await salesRecipients();
     await sendMail({
       to,
       subject: `[Chat] ${data.name} để lại liên hệ (#${enquiryId})`,
