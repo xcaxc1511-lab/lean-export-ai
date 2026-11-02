@@ -170,6 +170,8 @@ const MIGRATIONS = [
   `ALTER TABLE posts ADD COLUMN seo_desc_vi TEXT`,
   `ALTER TABLE posts ADD COLUMN seo_desc_en TEXT`,
   `ALTER TABLE posts ADD COLUMN og_image TEXT`,
+  // Notification bell: everything newer than this is unread for the user.
+  `ALTER TABLE admin_users ADD COLUMN notif_seen_at TEXT`,
 ];
 
 function d1Adapter(d1: NonNullable<ReturnType<typeof cloudflareEnv>>["DB"] & object): Db {

@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { History, Loader2, Search } from "lucide-react";
 import { AdminSubbar, AdminTopbar } from "@/components/admin/AdminShell";
 import { listAudit } from "@/functions/admin";
+import { ACTION_LABEL } from "@/lib/audit-labels";
 
 export const Route = createFileRoute("/admin/activity")({
   component: ActivityPage,
@@ -20,42 +21,6 @@ const GROUPS: { value: Group; label: string }[] = [
   { value: "chats", label: "Hội thoại" },
   { value: "settings", label: "Cài đặt" },
 ];
-
-/** Plain-language description of each logged action. */
-const ACTION_LABEL: Record<string, string> = {
-  login: "Đăng nhập",
-  logout: "Đăng xuất",
-  "account.profile": "Sửa hồ sơ cá nhân",
-  "account.password": "Đổi mật khẩu của mình",
-  "account.2fa_on": "Bật xác thực 2 lớp",
-  "account.2fa_off": "Tắt xác thực 2 lớp",
-  "user.2fa_reset": "Tắt 2FA cho tài khoản",
-  "category.create": "Tạo danh mục",
-  "category.update": "Sửa danh mục",
-  "category.delete": "Xóa danh mục",
-  "post.ai": "Dùng trợ lý AI viết bài",
-  "user.setup": "Tạo tài khoản quản trị đầu tiên",
-  "user.create": "Tạo tài khoản",
-  "user.update": "Sửa tài khoản",
-  "user.password_reset": "Đặt lại mật khẩu",
-  "user.delete": "Xóa tài khoản",
-  "enquiry.update": "Cập nhật yêu cầu",
-  "enquiry.delete": "Xóa yêu cầu",
-  "enquiry.export": "Xuất CSV yêu cầu",
-  "post.create": "Tạo bài nháp",
-  "post.update": "Sửa bài viết",
-  "post.publish": "Đăng bài",
-  "post.unpublish": "Gỡ bài về nháp",
-  "post.schedule": "Hẹn giờ đăng bài",
-  "post.delete": "Xóa bài viết",
-  "post.restore": "Khôi phục phiên bản bài viết",
-  "media.upload": "Tải ảnh lên",
-  "media.delete": "Xóa ảnh",
-  "chat.reply": "Trả lời hội thoại",
-  "chat.ai": "Bật/tắt AI hội thoại",
-  "chat.delete": "Xóa hội thoại",
-  "settings.update": "Sửa cài đặt website",
-};
 
 const tone = (action: string) =>
   action.endsWith(".delete")

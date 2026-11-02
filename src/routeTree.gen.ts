@@ -25,6 +25,7 @@ import { Route as AdminAccountRouteImport } from './routes/admin.account'
 import { Route as AdminActivityRouteImport } from './routes/admin.activity'
 import { Route as AdminChatsRouteImport } from './routes/admin.chats'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
+import { Route as AdminOverviewRouteImport } from './routes/admin.overview'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AreasAreaIdRouteImport } from './routes/areas.$areaId'
@@ -117,6 +118,11 @@ const AdminMediaRoute = AdminMediaRouteImport.update({
   path: '/media',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOverviewRoute = AdminOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/admin/activity': typeof AdminActivityRoute
   '/admin/chats': typeof AdminChatsRoute
   '/admin/media': typeof AdminMediaRoute
+  '/admin/overview': typeof AdminOverviewRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/admin/activity': typeof AdminActivityRoute
   '/admin/chats': typeof AdminChatsRoute
   '/admin/media': typeof AdminMediaRoute
+  '/admin/overview': typeof AdminOverviewRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/admin/activity': typeof AdminActivityRoute
   '/admin/chats': typeof AdminChatsRoute
   '/admin/media': typeof AdminMediaRoute
+  '/admin/overview': typeof AdminOverviewRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/chats'
     | '/admin/media'
+    | '/admin/overview'
     | '/admin/settings'
     | '/admin/users'
     | '/areas/$areaId'
@@ -306,6 +316,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/chats'
     | '/admin/media'
+    | '/admin/overview'
     | '/admin/settings'
     | '/admin/users'
     | '/areas/$areaId'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/admin/activity'
     | '/admin/chats'
     | '/admin/media'
+    | '/admin/overview'
     | '/admin/settings'
     | '/admin/users'
     | '/areas/$areaId'
@@ -484,6 +496,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMediaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/overview': {
+      id: '/admin/overview'
+      path: '/overview'
+      fullPath: '/admin/overview'
+      preLoaderRoute: typeof AdminOverviewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/settings'
@@ -569,6 +588,7 @@ interface AdminRouteChildren {
   AdminActivityRoute: typeof AdminActivityRoute
   AdminChatsRoute: typeof AdminChatsRoute
   AdminMediaRoute: typeof AdminMediaRoute
+  AdminOverviewRoute: typeof AdminOverviewRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -581,6 +601,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminActivityRoute: AdminActivityRoute,
   AdminChatsRoute: AdminChatsRoute,
   AdminMediaRoute: AdminMediaRoute,
+  AdminOverviewRoute: AdminOverviewRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,

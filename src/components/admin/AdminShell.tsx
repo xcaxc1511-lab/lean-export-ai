@@ -9,7 +9,11 @@ import {
 } from "react";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import {
+  Bell,
   Building2,
+  CalendarClock,
+  LayoutDashboard,
+  ShieldAlert,
   ChevronLeft,
   ExternalLink,
   History,
@@ -33,7 +37,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getNotifications,
+  markNotificationsSeen,
+  type AdminNotification,
+  type NotificationKind,
+} from "@/functions/overview";
 import { adminLogout } from "@/functions/admin";
 import { businessConfig } from "@/config/business";
 import { ROLE_LABEL, canAccess, homeFor, type Area, type Role } from "@/lib/roles";
@@ -100,6 +112,134 @@ export function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "lg"
   );
 }
 
+/* ---------------------------------------------------------- notifications */
+
+const NOTIF_ICON: Record<NotificationKind, typeof Inbox> = {
+  enquiry: Inbox,
+  chat: MessagesSquare,
+  post_live: Newspaper,
+  post_soon: CalendarClock,
+  security: ShieldAlert,
+};
+
+const NOTIF_TONE: Record<NotificationKind, string> = {
+  enquiry: "bg-admin-blue-soft text-admin-blue",
+  chat: "bg-[#ecfdf3] text-[#067647]",
+  post_live: "bg-[#f4f3ff] text-[#5925dc]",
+  post_soon: "bg-[#f4f3ff] text-[#5925dc]",
+  security: "bg-[#fef3f2] text-[#b42318]",
+};
+
+/** "5 phút trước", "3 giờ trước", then the date and time. */
+export function timeAgo(iso: string, now = Date.now()) {
+  const diff = now - Date.parse(iso);
+  const min = Math.round(diff / 60_000);
+  if (diff < 0) return "sắp tới";
+  if (min < 1) return "vừa xong";
+  if (min < 60) return `${min} phút trước`;
+  if (min < 24 * 60) return `${Math.round(min / 60)} giờ trước`;
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Bell in the top bar: new enquiries, chats waiting, scheduled posts, sign-in warnings. */
+function NotificationBell() {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const query = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => getNotifications(),
+    refetchInterval: 30_000,
+  });
+  const items = query.data?.items ?? [];
+  const unread = query.data?.unreadCount ?? 0;
+
+  const onOpenChange = (next: boolean) => {
+    setOpen(next);
+    // Closing marks what was shown as seen; the dots stay visible while the panel is open.
+    if (!next && unread > 0)
+      void markNotificationsSeen().then(() =>
+        qc.invalidateQueries({ queryKey: ["notifications"] }),
+      );
+  };
+
+  const go = (n: AdminNotification) => {
+    onOpenChange(false);
+    if (n.to === "/admin") void navigate({ to: "/admin", search: { status: "new" } });
+    else void navigate({ to: n.to });
+  };
+
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger
+        aria-label={unread ? `Thông báo, ${unread} chưa xem` : "Thông báo"}
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-admin-text outline-none hover:bg-admin-row focus-visible:ring-4 focus-visible:ring-admin-blue/20"
+      >
+        <Bell className="h-5 w-5" />
+        {unread > 0 && (
+          <span className="absolute right-1 top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-[#d92d20] px-1 text-[11px] font-semibold leading-[18px] text-white ring-2 ring-white">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={8} className="w-[min(380px,calc(100vw-24px))] p-0">
+        <div className="flex items-center justify-between border-b border-admin-line px-4 py-3">
+          <p className="text-sm font-semibold text-admin-ink">Thông báo</p>
+          {unread > 0 && <span className="text-xs text-admin-dim">{unread} chưa xem</span>}
+        </div>
+        {items.length === 0 ? (
+          <div className="px-4 py-10 text-center">
+            <Bell className="mx-auto h-6 w-6 text-admin-dim" />
+            <p className="mt-2 text-sm text-admin-muted">Không có việc gì đang chờ bạn.</p>
+          </div>
+        ) : (
+          <ul className="max-h-[min(440px,70vh)] overflow-y-auto py-1">
+            {items.map((n) => {
+              const Icon = NOTIF_ICON[n.kind];
+              return (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    onClick={() => go(n)}
+                    className="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-admin-row focus-visible:bg-admin-row focus-visible:outline-none"
+                  >
+                    <span
+                      className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${NOTIF_TONE[n.kind]}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={`block text-sm leading-snug ${n.unread ? "font-semibold text-admin-ink" : "text-admin-text"}`}
+                      >
+                        {n.title}
+                      </span>
+                      {n.detail && (
+                        <span className="mt-0.5 block truncate text-xs text-admin-muted">
+                          {n.detail}
+                        </span>
+                      )}
+                      <span className="mt-0.5 block text-xs text-admin-dim">{timeAgo(n.at)}</span>
+                    </span>
+                    {n.unread && (
+                      <span
+                        className="mt-2 h-2 w-2 shrink-0 rounded-full bg-admin-blue"
+                        aria-label="Chưa xem"
+                      />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /* --------------------------------------------------------------- top bars */
 
 export function AdminTopbar({
@@ -130,6 +270,7 @@ export function AdminTopbar({
           <nav className="hidden h-full items-stretch gap-8 overflow-x-auto md:flex">{tabs}</nav>
         )}
         <div className="ml-auto flex items-center gap-3">
+          <NotificationBell />
           <a
             href={siteHref}
             target="_blank"
@@ -244,6 +385,7 @@ function SidebarBody({
   const canSearch = canAccess(role, "enquiries");
   type Item = {
     to:
+      | "/admin/overview"
       | "/admin"
       | "/admin/chats"
       | "/admin/news"
@@ -255,9 +397,18 @@ function SidebarBody({
     icon: typeof Inbox;
     exact: boolean;
     badge: number;
-    area: Area;
+    /** Null: every signed-in user. */
+    area: Area | null;
   };
   const work: Item[] = [
+    {
+      to: "/admin/overview",
+      label: "Tổng quan",
+      icon: LayoutDashboard,
+      exact: true,
+      badge: 0,
+      area: null,
+    },
     {
       to: "/admin",
       label: "Yêu cầu báo giá",
@@ -310,7 +461,7 @@ function SidebarBody({
       area: "audit",
     },
   ];
-  const visible = (list: Item[]) => list.filter((i) => canAccess(role, i.area));
+  const visible = (list: Item[]) => list.filter((i) => !i.area || canAccess(role, i.area));
 
   const renderItem = (item: Item) => (
     <Link

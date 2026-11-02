@@ -43,5 +43,5 @@ export function areaOfPath(pathname: string): Area | null {
   return null;
 }
 
-/** First page a role should land on after signing in. */
-export const homeFor = (role: Role) => (role === "editor" ? "/admin/news" : "/admin");
+/** First page after signing in: the overview, whose sections follow the role. */
+export const homeFor = (_role: Role) => "/admin/overview" as const;
