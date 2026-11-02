@@ -3,6 +3,7 @@ import { useLocation } from "@tanstack/react-router";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { FloatingContact } from "@/components/FloatingContact";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 export function Layout({ children }: { children: ReactNode }) {
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -23,6 +24,7 @@ export function Layout({ children }: { children: ReactNode }) {
       </main>
       <Footer />
       <FloatingContact />
+      <ChatWidget />
     </div>
   );
 }

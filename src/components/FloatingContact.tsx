@@ -46,11 +46,11 @@ function FloatingButton({
   );
 }
 
-/** Floating quick-contact buttons (WhatsApp, Zalo, phone), like the VCU site. */
+/** Floating quick-contact buttons (WhatsApp, Zalo, phone), stacked above the chat launcher. */
 export function FloatingContact() {
   const { t } = useLang();
   return (
-    <div className="fixed bottom-5 right-4 z-40 flex flex-col gap-3 md:bottom-8 md:right-6">
+    <div className="fixed bottom-[5.5rem] right-[1.375rem] z-40 flex flex-col gap-3 md:bottom-[6.25rem] md:right-[1.625rem]">
       {businessConfig.whatsapp && (
         <FloatingButton
           href={whatsappHref()}

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { adminLogin, getAdminStatus } from "@/functions/admin";
 import { DEFAULT_ENQUIRY_FILTERS, listEnquiries } from "@/functions/enquiries";
+import { listChats } from "@/functions/chat";
 import { AdminFrame } from "@/components/admin/AdminShell";
 import { businessConfig } from "@/config/business";
 
@@ -86,8 +87,17 @@ function AdminLayout() {
     queryKey: ["enquiries", DEFAULT_ENQUIRY_FILTERS],
     queryFn: () => listEnquiries({ data: DEFAULT_ENQUIRY_FILTERS }),
   });
+  // Same key as the conversations page's default view; refreshes so new chats show up.
+  const chats = useQuery({
+    queryKey: ["chats", "all", ""],
+    queryFn: () => listChats({ data: { filter: "all", q: "" } }),
+    refetchInterval: 20_000,
+  });
   return (
-    <AdminFrame newCount={enquiries.data?.counts["new"] ?? 0}>
+    <AdminFrame
+      newCount={enquiries.data?.counts["new"] ?? 0}
+      chatUnread={chats.data?.unreadCount ?? 0}
+    >
       <Outlet />
     </AdminFrame>
   );

@@ -21,6 +21,7 @@ import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminChatsRouteImport } from './routes/admin.chats'
 import { Route as AreasAreaIdRouteImport } from './routes/areas.$areaId'
 import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
@@ -89,6 +90,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminChatsRoute = AdminChatsRouteImport.update({
+  id: '/chats',
+  path: '/chats',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AreasAreaIdRoute = AreasAreaIdRouteImport.update({
   id: '/areas/$areaId',
   path: '/areas/$areaId',
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/admin/chats': typeof AdminChatsRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/admin/chats': typeof AdminChatsRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/admin/chats': typeof AdminChatsRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
   '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
@@ -202,6 +211,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms-and-conditions'
+    | '/admin/chats'
     | '/areas/$areaId'
     | '/news/$slug'
     | '/services/$serviceId'
@@ -222,6 +232,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms-and-conditions'
+    | '/admin/chats'
     | '/areas/$areaId'
     | '/news/$slug'
     | '/services/$serviceId'
@@ -243,6 +254,7 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms-and-conditions'
+    | '/admin/chats'
     | '/areas/$areaId'
     | '/news/$slug'
     | '/services/$serviceId'
@@ -358,6 +370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/chats': {
+      id: '/admin/chats'
+      path: '/chats'
+      fullPath: '/admin/chats'
+      preLoaderRoute: typeof AdminChatsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/areas/$areaId': {
       id: '/areas/$areaId'
       path: '/areas/$areaId'
@@ -411,12 +430,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminChatsRoute: typeof AdminChatsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminNewsIdRoute: typeof AdminNewsIdRoute
   AdminNewsIndexRoute: typeof AdminNewsIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminChatsRoute: AdminChatsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminNewsIdRoute: AdminNewsIdRoute,
   AdminNewsIndexRoute: AdminNewsIndexRoute,

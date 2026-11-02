@@ -13,6 +13,7 @@ GitHub Pages đã được tắt — chỉ dùng bản Cloudflare.
 | Email báo cho sales + email xác nhận cho khách (song ngữ)                    | Qua Resend                                   |
 | Trang quản trị: xem, lọc, tìm, đổi trạng thái, ghi chú, xóa, xuất CSV        | `/admin`                                     |
 | Tin tức song ngữ: soạn, xem trước, nháp/đăng, ảnh bìa                        | `/admin/news` → hiển thị ở `/news`           |
+| Chat widget (mọi trang) + Voice AI (hero trang chủ), trợ lý AI dùng Claude      | Hội thoại xem và trả lời ở `/admin/chats`    |
 
 Bảng dữ liệu được **tự tạo** ở lần chạy đầu tiên — không cần chạy migration.
 
@@ -36,6 +37,7 @@ Bảng dữ liệu được **tự tạo** ở lần chạy đầu tiên — kh�
    npx wrangler secret put ADMIN_PASSWORD   # mật khẩu vào /admin
    npx wrangler secret put SESSION_SECRET   # chuỗi ngẫu nhiên ≥ 32 ký tự
    npx wrangler secret put RESEND_API_KEY   # khóa API Resend (bỏ qua nếu chưa cần email)
+   npx wrangler secret put ANTHROPIC_API_KEY  # khóa Claude API cho chat widget + Voice AI
    ```
    Tạo chuỗi ngẫu nhiên cho `SESSION_SECRET`:
    ```sh

@@ -1,4 +1,5 @@
 import { HeroMedia } from "@/components/HeroMedia";
+import { VoiceAgent } from "@/components/chat/VoiceAgent";
 import { Link } from "@tanstack/react-router";
 import {
   Anchor,
@@ -170,14 +171,14 @@ export default function Index() {
     <>
       <div className="flex flex-col min-h-screen">
         {/* Hero Section */}
-        <section className="relative h-[100vh] min-h-[680px] md:min-h-[700px] flex items-center justify-center bg-brand-ink-2 overflow-hidden">
+        <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden bg-brand-ink-2 pb-16 pt-28 lg:h-[100vh] lg:min-h-[700px] lg:py-0">
           <HeroMedia
             imageUrl={integrationsConfig.heroPosterUrl}
             videoUrl={integrationsConfig.heroVideoUrl}
           />
           <div className="absolute inset-0 bg-black/50" />
 
-          <div className="container relative z-10 mx-auto px-4 text-center md:text-left pt-16">
+          <div className="container relative z-10 mx-auto grid items-center gap-10 px-4 text-center md:text-left lg:grid-cols-[minmax(0,1fr)_464px] lg:pt-16 xl:gap-16">
             <div className="max-w-4xl">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight md:leading-none lg:leading-none">
                 {t(copy.heroTitle)}
@@ -196,6 +197,11 @@ export default function Index() {
                   <Phone className="h-4 w-4" /> {businessConfig.phone}
                 </a>
               </div>
+            </div>
+            {/* Voice AI: talk to the sales assistant right from the hero.
+                Right padding keeps the card clear of the floating contact buttons. */}
+            <div className="flex justify-center lg:justify-end lg:pr-16">
+              <VoiceAgent />
             </div>
           </div>
         </section>

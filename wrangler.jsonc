@@ -1,6 +1,6 @@
 // Cloudflare Workers deployment for the full-stack site (SSR + backend + D1).
 // Build with `npm run build:cf`, then deploy with `npm run deploy:cf`.
-// Secrets (ADMIN_PASSWORD, SESSION_SECRET, RESEND_API_KEY) are set with
+// Secrets (ADMIN_PASSWORD, SESSION_SECRET, RESEND_API_KEY, ANTHROPIC_API_KEY) are set with
 // `npx wrangler secret put <NAME>` — never put them in this file.
 {
   "$schema": "node_modules/wrangler/config-schema.json",

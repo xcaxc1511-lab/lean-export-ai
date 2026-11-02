@@ -50,6 +50,33 @@ const SCHEMA = [
     updated_at TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_posts_published ON posts (status, published_at)`,
+  // Website chat widget + Voice AI conversations (see src/functions/chat.ts).
+  `CREATE TABLE IF NOT EXISTS chat_sessions (
+    id TEXT PRIMARY KEY,
+    token_hash TEXT NOT NULL,
+    channel TEXT NOT NULL DEFAULT 'chat',
+    lang TEXT,
+    page TEXT,
+    name TEXT,
+    email TEXT,
+    phone TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    ai_paused INTEGER NOT NULL DEFAULT 0,
+    unread INTEGER NOT NULL DEFAULT 0,
+    enquiry_id INTEGER,
+    ip TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_chat_sessions_updated ON chat_sessions (updated_at)`,
+  `CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages (session_id, id)`,
 ];
 
 function d1Adapter(d1: NonNullable<ReturnType<typeof cloudflareEnv>>["DB"] & object): Db {

@@ -16,6 +16,7 @@ import {
   Inbox,
   LogOut,
   Menu,
+  MessagesSquare,
   Newspaper,
   Search,
 } from "lucide-react";
@@ -175,11 +176,13 @@ export function AdminSubbar({ tabs, actions }: { tabs: ReactNode; actions?: Reac
 function SidebarBody({
   collapsed,
   newCount,
+  chatUnread,
   onNavigate,
   onToggle,
 }: {
   collapsed: boolean;
   newCount: number;
+  chatUnread: number;
   onNavigate?: () => void;
   onToggle?: () => void;
 }) {
@@ -212,6 +215,13 @@ function SidebarBody({
 
   const items = [
     { to: "/admin", label: "Yêu cầu báo giá", icon: Inbox, exact: true, badge: newCount },
+    {
+      to: "/admin/chats",
+      label: "Hội thoại",
+      icon: MessagesSquare,
+      exact: false,
+      badge: chatUnread,
+    },
     { to: "/admin/news", label: "Tin tức", icon: Newspaper, exact: false, badge: 0 },
   ] as const;
 
@@ -329,7 +339,15 @@ function SidebarBody({
   );
 }
 
-export function AdminFrame({ newCount, children }: { newCount: number; children: ReactNode }) {
+export function AdminFrame({
+  newCount,
+  chatUnread,
+  children,
+}: {
+  newCount: number;
+  chatUnread: number;
+  children: ReactNode;
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -359,7 +377,12 @@ export function AdminFrame({ newCount, children }: { newCount: number; children:
             collapsed ? "w-[76px]" : "w-60"
           }`}
         >
-          <SidebarBody collapsed={collapsed} newCount={newCount} onToggle={toggle} />
+          <SidebarBody
+            collapsed={collapsed}
+            newCount={newCount}
+            chatUnread={chatUnread}
+            onToggle={toggle}
+          />
           <button
             type="button"
             onClick={toggle}
@@ -378,6 +401,7 @@ export function AdminFrame({ newCount, children }: { newCount: number; children:
             <SidebarBody
               collapsed={false}
               newCount={newCount}
+              chatUnread={chatUnread}
               onNavigate={() => setMenuOpen(false)}
             />
           </SheetContent>
