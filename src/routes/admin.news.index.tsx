@@ -1,7 +1,18 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, ImageOff, Loader2, Newspaper, Pencil, Plus, Search } from "lucide-react";
+import {
+  ExternalLink,
+  FolderTree,
+  ImageOff,
+  Loader2,
+  Newspaper,
+  Pencil,
+  Plus,
+  Search,
+} from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { CategoryManager } from "@/components/admin/CategoryManager";
 import { AdminSubbar, AdminTopbar } from "@/components/admin/AdminShell";
 import { ScoreChip } from "@/components/admin/AeoGeoPanel";
 import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
@@ -24,6 +35,7 @@ const fmtDate = (iso: string | null) =>
     : "—";
 
 function NewsAdminPage() {
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>("all");
   const [term, setTerm] = useState("");
@@ -81,17 +93,37 @@ function NewsAdminPage() {
           </button>
         ))}
         actions={
-          <Link
-            to="/admin/news/$id"
-            params={{ id: "new" }}
-            className="admin-btn admin-btn-primary w-10 px-0 sm:w-auto sm:px-4"
-            aria-label="Viết bài mới"
-            title="Viết bài mới"
-          >
-            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Viết bài mới</span>
-          </Link>
+          <>
+            <button
+              type="button"
+              className="admin-btn admin-btn-secondary w-10 px-0 sm:w-auto sm:px-4"
+              onClick={() => setCategoriesOpen(true)}
+              aria-label="Danh mục"
+              title="Quản lý danh mục"
+            >
+              <FolderTree className="h-4 w-4" /> <span className="hidden sm:inline">Danh mục</span>
+            </button>
+            <Link
+              to="/admin/news/$id"
+              params={{ id: "new" }}
+              className="admin-btn admin-btn-primary w-10 px-0 sm:w-auto sm:px-4"
+              aria-label="Viết bài mới"
+              title="Viết bài mới"
+            >
+              <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Viết bài mới</span>
+            </Link>
+          </>
         }
       />
+      <Sheet open={categoriesOpen} onOpenChange={setCategoriesOpen}>
+        <SheetContent className="w-full overflow-y-auto bg-white sm:max-w-lg">
+          <SheetTitle className="text-xl font-semibold text-admin-ink">Danh mục tin tức</SheetTitle>
+          <SheetDescription className="mb-5 text-sm text-admin-dim">
+            Danh mục song ngữ, hiện thành bộ lọc ở trang Tin tức và trên từng bài viết.
+          </SheetDescription>
+          <CategoryManager />
+        </SheetContent>
+      </Sheet>
 
       <div className="flex-1 p-4 lg:p-6">
         <div className="admin-card">

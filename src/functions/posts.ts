@@ -23,6 +23,25 @@ export interface Post {
   created_at: string;
   updated_at: string;
   author_id: number | null;
+  category_id: number | null;
+  /** JSON array of tag strings. */
+  tags: string | null;
+  seo_title_vi: string | null;
+  seo_title_en: string | null;
+  seo_desc_vi: string | null;
+  seo_desc_en: string | null;
+  og_image: string | null;
+}
+
+/** Parse the stored tags column. */
+export function parseTags(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return Array.isArray(value) ? value.filter((t): t is string => typeof t === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 /** Public byline, from the admin account that wrote the post. */
@@ -34,7 +53,7 @@ export interface PostAuthor {
 export type PostSummary = Omit<Post, "body_en" | "body_vi">;
 
 const SUMMARY_COLS =
-  "id, slug, title_en, title_vi, excerpt_en, excerpt_vi, cover_url, status, published_at, created_at, updated_at";
+  "id, slug, title_en, title_vi, excerpt_en, excerpt_vi, cover_url, status, published_at, created_at, updated_at, author_id, category_id, tags, seo_title_vi, seo_title_en, seo_desc_vi, seo_desc_en, og_image";
 
 /** URL-safe slug, stripping Vietnamese diacritics ("Cà phê" → "ca-phe"). */
 export function slugify(input: string): string {
@@ -61,14 +80,34 @@ export const isLive = (p: { status: string; published_at: string | null }) =>
 /** Public: published posts, newest first. */
 export const listPublishedPosts = createServerFn({ method: "GET" })
   .validator((data: unknown) =>
-    z.object({ limit: z.number().int().min(1).max(50).optional().default(24) }).parse(data ?? {}),
+    z
+      .object({
+        limit: z.number().int().min(1).max(50).optional().default(24),
+        category: z.string().max(80).optional(),
+      })
+      .parse(data ?? {}),
   )
   .handler(async ({ data }) => {
     const db = await getDb();
-    return db.all<PostSummary>(
-      `SELECT ${SUMMARY_COLS} FROM posts WHERE ${PUBLISHED_SQL}
-       ORDER BY published_at DESC LIMIT ?`,
-      [data.limit],
+    const cols = SUMMARY_COLS.split(", ")
+      .map((c) => `p.${c}`)
+      .join(", ");
+    const live = PUBLISHED_SQL.replace(/\bstatus\b/g, "p.status").replace(
+      /\bpublished_at\b/g,
+      "p.published_at",
+    );
+    return db.all<
+      PostSummary & {
+        category_slug: string | null;
+        category_vi: string | null;
+        category_en: string | null;
+      }
+    >(
+      `SELECT ${cols}, c.slug AS category_slug, c.name_vi AS category_vi, c.name_en AS category_en
+       FROM posts p LEFT JOIN categories c ON c.id = p.category_id
+       WHERE ${live} ${data.category ? "AND c.slug = ?" : ""}
+       ORDER BY p.published_at DESC LIMIT ?`,
+      data.category ? [data.category, data.limit] : [data.limit],
     );
   });
 
@@ -77,9 +116,21 @@ export const getPostBySlug = createServerFn({ method: "GET" })
   .validator((data: unknown) => z.object({ slug: z.string().min(1).max(120) }).parse(data))
   .handler(async ({ data }) => {
     const db = await getDb();
-    const post = await db.first<Post & { author_name: string | null; author_title: string | null }>(
-      `SELECT p.*, u.name AS author_name, u.title AS author_title
-       FROM posts p LEFT JOIN admin_users u ON u.id = p.author_id WHERE p.slug = ?`,
+    const post = await db.first<
+      Post & {
+        author_name: string | null;
+        author_title: string | null;
+        category_slug: string | null;
+        category_vi: string | null;
+        category_en: string | null;
+      }
+    >(
+      `SELECT p.*, u.name AS author_name, u.title AS author_title,
+              c.slug AS category_slug, c.name_vi AS category_vi, c.name_en AS category_en
+       FROM posts p
+       LEFT JOIN admin_users u ON u.id = p.author_id
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE p.slug = ?`,
       [data.slug],
     );
     if (!post) return null;
@@ -119,6 +170,19 @@ const postInput = z.object({
   body_en: z.string().max(400_000).optional().default(""),
   body_vi: z.string().max(400_000).optional().default(""),
   cover_url: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === "" || /^https?:\/\//.test(v) || v.startsWith("/"), "Invalid image URL")
+    .optional()
+    .default(""),
+  category_id: z.number().int().positive().nullable().optional().default(null),
+  tags: z.array(z.string().trim().min(1).max(40)).max(12).optional().default([]),
+  seo_title_vi: z.string().trim().max(120).optional().default(""),
+  seo_title_en: z.string().trim().max(120).optional().default(""),
+  seo_desc_vi: z.string().trim().max(320).optional().default(""),
+  seo_desc_en: z.string().trim().max(320).optional().default(""),
+  og_image: z
     .string()
     .trim()
     .max(500)
@@ -180,12 +244,21 @@ export const savePost = createServerFn({ method: "POST" })
       data.status,
       publishedAt,
       now,
+      data.category_id ?? null,
+      data.tags.length ? JSON.stringify([...new Set(data.tags)]) : null,
+      data.seo_title_vi || null,
+      data.seo_title_en || null,
+      data.seo_desc_vi || null,
+      data.seo_desc_en || null,
+      data.og_image || null,
     ];
 
     if (existing) {
       await db.run(
         `UPDATE posts SET slug = ?, title_en = ?, title_vi = ?, excerpt_en = ?, excerpt_vi = ?,
-           body_en = ?, body_vi = ?, cover_url = ?, status = ?, published_at = ?, updated_at = ?
+           body_en = ?, body_vi = ?, cover_url = ?, status = ?, published_at = ?, updated_at = ?,
+           category_id = ?, tags = ?, seo_title_vi = ?, seo_title_en = ?, seo_desc_vi = ?,
+           seo_desc_en = ?, og_image = ?
          WHERE id = ?`,
         [...values, existing.id],
       );
@@ -195,8 +268,9 @@ export const savePost = createServerFn({ method: "POST" })
     }
     const { lastId } = await db.run(
       `INSERT INTO posts (slug, title_en, title_vi, excerpt_en, excerpt_vi, body_en, body_vi,
-         cover_url, status, published_at, updated_at, created_at, author_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         cover_url, status, published_at, updated_at, category_id, tags, seo_title_vi,
+         seo_title_en, seo_desc_vi, seo_desc_en, og_image, created_at, author_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [...values, now, user.id],
     );
     await audit(user, postAction(false, data.status), data.title_vi, `/news/${slug}`);

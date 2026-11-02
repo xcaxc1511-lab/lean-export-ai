@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { listCategories } from "@/functions/categories";
 import {
   ArrowDown,
   CalendarClock,
@@ -30,6 +31,7 @@ import {
 import {
   deletePost,
   isLive,
+  parseTags,
   savePost,
   type Post,
   type PostInput,
@@ -59,6 +61,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MediaPickerContext, type PickedImage } from "./media-picker";
 import { RevisionsPanel } from "./RevisionsPanel";
+import { AiWriterPanel } from "./AiWriterPanel";
 import { ScheduleDialog } from "./ScheduleDialog";
 import { BlockSettings } from "./BlockSettings";
 import { BlockView, type FocusRequest } from "./BlockView";
@@ -77,6 +80,13 @@ interface Meta {
   excerpt_en: string;
   cover_url: string;
   status: PostStatus;
+  category_id: number | null;
+  tags: string[];
+  seo_title_vi: string;
+  seo_title_en: string;
+  seo_desc_vi: string;
+  seo_desc_en: string;
+  og_image: string;
 }
 type Device = "desktop" | "tablet" | "mobile";
 type Panel = "blocks" | "post" | "score" | "history";
@@ -117,7 +127,16 @@ export function PostBuilder({ post }: { post: Post | null }) {
     excerpt_en: post?.excerpt_en ?? "",
     cover_url: post?.cover_url ?? "",
     status: post?.status ?? "draft",
+    category_id: post?.category_id ?? null,
+    tags: parseTags(post?.tags),
+    seo_title_vi: post?.seo_title_vi ?? "",
+    seo_title_en: post?.seo_title_en ?? "",
+    seo_desc_vi: post?.seo_desc_vi ?? "",
+    seo_desc_en: post?.seo_desc_en ?? "",
+    og_image: post?.og_image ?? "",
   });
+  const categories = useQuery({ queryKey: ["categories"], queryFn: () => listCategories() });
+  const [tagDraft, setTagDraft] = useState("");
   /** Go-live time: first publish date, or the scheduled time. */
   const [publishedAt, setPublishedAt] = useState<string | null>(post?.published_at ?? null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -211,6 +230,13 @@ export function PostBuilder({ post }: { post: Post | null }) {
           created_at: now,
           updated_at: now,
           author_id: null,
+          category_id: next.category_id,
+          tags: next.tags.length ? JSON.stringify(next.tags) : null,
+          seo_title_vi: next.seo_title_vi || null,
+          seo_title_en: next.seo_title_en || null,
+          seo_desc_vi: next.seo_desc_vi || null,
+          seo_desc_en: next.seo_desc_en || null,
+          og_image: next.og_image || null,
         });
         await navigate({ to: "/admin/news/$id", params: { id: String(res.id) }, replace: true });
       }
@@ -281,6 +307,13 @@ export function PostBuilder({ post }: { post: Post | null }) {
         excerpt_vi: data.excerpt_vi ?? "",
         excerpt_en: data.excerpt_en ?? "",
         cover_url: data.cover_url ?? "",
+        category_id: data.category_id ?? null,
+        tags: data.tags ?? [],
+        seo_title_vi: data.seo_title_vi ?? "",
+        seo_title_en: data.seo_title_en ?? "",
+        seo_desc_vi: data.seo_desc_vi ?? "",
+        seo_desc_en: data.seo_desc_en ?? "",
+        og_image: data.og_image ?? "",
       },
       { body_vi: data.body_vi ?? "", body_en: data.body_en ?? "" },
     );
@@ -823,6 +856,48 @@ export function PostBuilder({ post }: { post: Post | null }) {
 
                   {panel === "post" && (
                     <div className="grid gap-5 p-4">
+                      <AiWriterPanel
+                        lang={lang}
+                        current={{
+                          title,
+                          excerpt,
+                          seoTitle: lang === "vi" ? meta.seo_title_vi : meta.seo_title_en,
+                          seoDesc: lang === "vi" ? meta.seo_desc_vi : meta.seo_desc_en,
+                          body: serializeBody(blocks),
+                        }}
+                        otherHasContent={
+                          hist.present[otherLang].length > 0 ||
+                          !!(otherLang === "vi" ? meta.title_vi : meta.title_en).trim()
+                        }
+                        hasBlocks={blocks.length > 0}
+                        onTranslated={(to, res) => {
+                          setMeta((m) => ({
+                            ...m,
+                            [`title_${to}`]: res.title,
+                            [`excerpt_${to}`]: res.excerpt,
+                            [`seo_title_${to}`]: res.seoTitle,
+                            [`seo_desc_${to}`]: res.seoDesc,
+                          }));
+                          setHist((h) => ({
+                            past: [...h.past.slice(-99), h.present],
+                            present: { ...h.present, [to]: parseBody(res.body) },
+                            future: [],
+                            key: null,
+                            at: Date.now(),
+                          }));
+                        }}
+                        onOutline={(res, append) => {
+                          const drafted = parseBody(res.body);
+                          commit((bs) => (append ? [...bs, ...drafted] : drafted));
+                          setMeta((m) => ({
+                            ...m,
+                            ...(!excerpt.trim() ? { [`excerpt_${lang}`]: res.excerpt } : {}),
+                            ...(!(lang === "vi" ? m.seo_title_vi : m.seo_title_en).trim()
+                              ? { [`seo_title_${lang}`]: res.seoTitle }
+                              : {}),
+                          }));
+                        }}
+                      />
                       <label className="admin-label">
                         Tiêu đề ({lang.toUpperCase()}) *
                         <textarea
@@ -888,6 +963,186 @@ export function PostBuilder({ post }: { post: Post | null }) {
                           className="aspect-video w-full rounded-lg border border-admin-line object-cover"
                         />
                       )}
+                      <div className="grid min-w-0 gap-3 border-t border-admin-line pt-5">
+                        <h4 className="text-xs font-semibold text-admin-dim">Phân loại</h4>
+                        <label className="admin-label">
+                          Danh mục
+                          <select
+                            className="admin-input"
+                            value={meta.category_id ?? ""}
+                            onChange={(e) =>
+                              setMeta((m) => ({
+                                ...m,
+                                category_id: e.target.value ? Number(e.target.value) : null,
+                              }))
+                            }
+                          >
+                            <option value="">Chưa phân loại</option>
+                            {(categories.data ?? []).map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name_vi} / {c.name_en}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="admin-hint">
+                            Thêm hoặc sửa danh mục ở trang Tin tức, nút "Danh mục".
+                          </span>
+                        </label>
+                        <div className="admin-label">
+                          Thẻ
+                          <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-admin-field bg-white p-1.5">
+                            {meta.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex items-center gap-1 rounded-md bg-admin-row px-2 py-0.5 text-xs font-medium text-admin-text"
+                              >
+                                {tag}
+                                <button
+                                  type="button"
+                                  aria-label={`Bỏ thẻ ${tag}`}
+                                  className="text-admin-dim hover:text-[#b42318]"
+                                  onClick={() =>
+                                    setMeta((m) => ({
+                                      ...m,
+                                      tags: m.tags.filter((t) => t !== tag),
+                                    }))
+                                  }
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                            <input
+                              value={tagDraft}
+                              onChange={(e) => setTagDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key !== "Enter" && e.key !== ",") return;
+                                e.preventDefault();
+                                const tag = tagDraft.trim().replace(/,$/, "");
+                                if (tag && !meta.tags.includes(tag) && meta.tags.length < 12)
+                                  setMeta((m) => ({ ...m, tags: [...m.tags, tag.slice(0, 40)] }));
+                                setTagDraft("");
+                              }}
+                              placeholder={meta.tags.length ? "" : "Robusta, giá cà phê…"}
+                              aria-label="Thêm thẻ"
+                              className="min-w-[8rem] flex-1 bg-transparent px-1 text-sm outline-none"
+                            />
+                          </div>
+                          <span className="admin-hint">
+                            Nhấn Enter hoặc dấu phẩy để thêm thẻ. Tối đa 12 thẻ.
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid min-w-0 gap-3 border-t border-admin-line pt-5">
+                        <h4 className="text-xs font-semibold text-admin-dim">
+                          SEO ({lang === "vi" ? "Tiếng Việt" : "English"})
+                        </h4>
+                        {(() => {
+                          const seoTitle = lang === "vi" ? meta.seo_title_vi : meta.seo_title_en;
+                          const seoDesc = lang === "vi" ? meta.seo_desc_vi : meta.seo_desc_en;
+                          const shownTitle = seoTitle || title || "Tiêu đề bài viết";
+                          const shownDesc =
+                            seoDesc || excerpt || "Mô tả bài viết hiện trên Google.";
+                          return (
+                            <>
+                              <label className="admin-label">
+                                Tiêu đề SEO
+                                <input
+                                  className="admin-input"
+                                  value={seoTitle}
+                                  maxLength={120}
+                                  placeholder={title || "Để trống để dùng tiêu đề bài viết"}
+                                  onChange={(e) =>
+                                    setMeta((m) => ({
+                                      ...m,
+                                      [`seo_title_${lang}`]: e.target.value,
+                                    }))
+                                  }
+                                />
+                                <span
+                                  className={`admin-hint ${shownTitle.length > 60 ? "text-[#b54708]" : ""}`}
+                                >
+                                  {shownTitle.length}/60 ký tự. Để trống thì dùng tiêu đề bài viết.
+                                </span>
+                              </label>
+                              <label className="admin-label">
+                                Mô tả SEO
+                                <textarea
+                                  rows={3}
+                                  className="admin-input"
+                                  value={seoDesc}
+                                  maxLength={320}
+                                  placeholder={excerpt || "Để trống để dùng phần tóm tắt"}
+                                  onChange={(e) =>
+                                    setMeta((m) => ({ ...m, [`seo_desc_${lang}`]: e.target.value }))
+                                  }
+                                />
+                                <span
+                                  className={`admin-hint ${shownDesc.length > 160 || shownDesc.length < 110 ? "text-[#b54708]" : ""}`}
+                                >
+                                  {shownDesc.length} ký tự, nên 110–160. Để trống thì dùng phần tóm
+                                  tắt.
+                                </span>
+                              </label>
+                              <div
+                                className="min-w-0 rounded-lg border border-admin-line p-3"
+                                aria-label="Xem trước trên Google"
+                              >
+                                <p className="mb-1 text-[11px] text-admin-dim">
+                                  Xem trước trên Google
+                                </p>
+                                <p className="truncate text-xs text-[#4d5156]">
+                                  {typeof window !== "undefined" ? window.location.host : ""}/news/
+                                  {meta.slug || "duong-dan-bai-viet"}
+                                </p>
+                                <p className="line-clamp-1 text-[17px] leading-snug text-[#1a0dab]">
+                                  {shownTitle}
+                                </p>
+                                <p className="line-clamp-2 text-[13px] leading-snug text-[#4d5156]">
+                                  {shownDesc}
+                                </p>
+                              </div>
+                            </>
+                          );
+                        })()}
+                        <div className="admin-label">
+                          Ảnh chia sẻ mạng xã hội
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn-secondary flex-1"
+                              onClick={() =>
+                                openPicker(({ url }) => setMeta((m) => ({ ...m, og_image: url })))
+                              }
+                            >
+                              <Images className="h-4 w-4" />{" "}
+                              {meta.og_image ? "Đổi ảnh" : "Chọn ảnh riêng"}
+                            </button>
+                            {meta.og_image && (
+                              <button
+                                type="button"
+                                className="admin-btn admin-btn-secondary"
+                                onClick={() => setMeta((m) => ({ ...m, og_image: "" }))}
+                              >
+                                Dùng ảnh bìa
+                              </button>
+                            )}
+                          </div>
+                          {safeUrl(meta.og_image) && (
+                            <img
+                              src={safeUrl(meta.og_image)}
+                              alt=""
+                              className="aspect-[1.91/1] w-full rounded-lg border border-admin-line object-cover"
+                            />
+                          )}
+                          <span className="admin-hint">
+                            Hiện khi chia sẻ link lên Facebook, Zalo, LinkedIn. Mặc định dùng ảnh
+                            bìa; tỉ lệ đẹp nhất 1200×630.
+                          </span>
+                        </div>
+                      </div>
+
                       <label className="admin-label">
                         Đường dẫn (slug)
                         <input

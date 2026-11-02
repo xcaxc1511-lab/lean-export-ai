@@ -15,6 +15,12 @@ import {
   requireAdmin,
   setPassword,
   setupFirstAdmin,
+  beginTwoFactor,
+  checkTwoFactorCode,
+  confirmTwoFactor,
+  disableTwoFactor,
+  recoveryCodesLeft,
+  verifySecondFactor,
   type AdminUser,
 } from "@/server/auth";
 
@@ -40,6 +46,15 @@ export const adminLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const res = await loginAdmin(data.email, data.password);
     if (res.ok) await audit(res.user, "login");
+    return res.ok ? { ok: true as const } : { ok: false as const, error: res.error };
+  });
+
+/** Second sign-in step (6-digit app code or recovery code). */
+export const adminVerify2fa = createServerFn({ method: "POST" })
+  .validator((data: unknown) => z.object({ code: z.string().trim().min(6).max(20) }).parse(data))
+  .handler(async ({ data }) => {
+    const res = await verifySecondFactor(data.code);
+    if (res.ok) await audit(res.user, "login", null, "Xác thực 2 lớp");
     return res.ok ? { ok: true as const } : { ok: false as const, error: res.error };
   });
 
@@ -92,13 +107,73 @@ export const changeMyPassword = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/* ------------------------------------------------- two-factor sign-in */
+
+export const getMy2faStatus = createServerFn({ method: "GET" }).handler(async () => {
+  const user = await requireAdmin();
+  return {
+    enabled: !!user.totp_enabled,
+    recoveryLeft: user.totp_enabled ? await recoveryCodesLeft(user.id) : 0,
+  };
+});
+
+/** Step 1: create a secret; the page shows it as a QR code. */
+export const start2faSetup = createServerFn({ method: "POST" }).handler(async () => {
+  const user = await requireAdmin();
+  if (user.totp_enabled) return { ok: false as const, error: "already_on" };
+  return { ok: true as const, ...(await beginTwoFactor(user)) };
+});
+
+/** Step 2: confirm with a code from the app; returns one-time recovery codes. */
+export const confirm2faSetup = createServerFn({ method: "POST" })
+  .validator((data: unknown) => z.object({ code: z.string().trim().min(6).max(10) }).parse(data))
+  .handler(async ({ data }) => {
+    const user = await requireAdmin();
+    const codes = await confirmTwoFactor(user.id, data.code);
+    if (!codes) return { ok: false as const, error: "invalid_code" };
+    await audit(user, "account.2fa_on");
+    return { ok: true as const, recoveryCodes: codes };
+  });
+
+export const disableMy2fa = createServerFn({ method: "POST" })
+  .validator((data: unknown) =>
+    z
+      .object({ password: z.string().min(1).max(200), code: z.string().trim().min(6).max(10) })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const user = await requireAdmin();
+    if (!(await checkPassword(user.id, data.password)))
+      return { ok: false as const, error: "wrong_password" };
+    if (!(await checkTwoFactorCode(user.id, data.code)))
+      return { ok: false as const, error: "invalid_code" };
+    await disableTwoFactor(user.id);
+    await audit(user, "account.2fa_off");
+    return { ok: true as const };
+  });
+
+/** Admin: turn off 2FA for someone who lost their phone (they sign in with the password, then re-enrol). */
+export const resetUser2fa = createServerFn({ method: "POST" })
+  .validator((data: unknown) => z.object({ id: z.number().int().positive() }).parse(data))
+  .handler(async ({ data }) => {
+    const me = await requireAdmin("users");
+    const db = await getDb();
+    const target = await db.first<{ email: string }>("SELECT email FROM admin_users WHERE id = ?", [
+      data.id,
+    ]);
+    if (!target) return { ok: false as const, error: "not_found" };
+    await disableTwoFactor(data.id);
+    await audit(me, "user.2fa_reset", target.email);
+    return { ok: true as const };
+  });
+
 /* ---------------------------------------------------------- accounts */
 
 export const listUsers = createServerFn({ method: "GET" }).handler(async () => {
   const me = await requireAdmin("users");
   const db = await getDb();
   const users = await db.all<AdminUser>(
-    "SELECT id, email, name, title, role, status, last_login_at, created_at FROM admin_users ORDER BY created_at",
+    "SELECT id, email, name, title, role, status, last_login_at, created_at, totp_enabled FROM admin_users ORDER BY created_at",
   );
   return { users, meId: me.id };
 });
@@ -146,7 +221,7 @@ export const updateUser = createServerFn({ method: "POST" })
     const me = await requireAdmin("users");
     const db = await getDb();
     const target = await db.first<AdminUser>(
-      "SELECT id, email, name, title, role, status, last_login_at, created_at FROM admin_users WHERE id = ?",
+      "SELECT id, email, name, title, role, status, last_login_at, created_at, totp_enabled FROM admin_users WHERE id = ?",
       [data.id],
     );
     if (!target) return { ok: false as const, error: "not_found" };
@@ -216,7 +291,7 @@ export const deleteUser = createServerFn({ method: "POST" })
     if (data.id === me.id) return { ok: false as const, error: "self" };
     const db = await getDb();
     const target = await db.first<AdminUser>(
-      "SELECT id, email, name, title, role, status, last_login_at, created_at FROM admin_users WHERE id = ?",
+      "SELECT id, email, name, title, role, status, last_login_at, created_at, totp_enabled FROM admin_users WHERE id = ?",
       [data.id],
     );
     if (!target) return { ok: false as const, error: "not_found" };

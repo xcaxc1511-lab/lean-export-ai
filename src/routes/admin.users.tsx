@@ -1,7 +1,17 @@
 import { useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, Loader2, Lock, LockOpen, MoreHorizontal, Trash2, UserPlus } from "lucide-react";
+import {
+  KeyRound,
+  Loader2,
+  Lock,
+  LockOpen,
+  MoreHorizontal,
+  ShieldCheck,
+  ShieldOff,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +25,7 @@ import {
   createUser,
   deleteUser,
   listUsers,
+  resetUser2fa,
   resetUserPassword,
   updateUser,
 } from "@/functions/admin";
@@ -89,6 +100,11 @@ function UsersPage() {
       setError(res.ok ? null : (ERRORS[res.error] ?? "Chưa xóa được tài khoản."));
       await refresh();
     },
+  });
+
+  const reset2fa = useMutation({
+    mutationFn: (id: number) => resetUser2fa({ data: { id } }),
+    onSuccess: refresh,
   });
 
   const users = query.data?.users ?? [];
@@ -179,6 +195,14 @@ function UsersPage() {
                         </option>
                       ))}
                     </select>
+                    {u.totp_enabled ? (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf3] px-2 py-0.5 text-xs font-medium text-[#067647] ring-1 ring-inset ring-[#abefc6]"
+                        title="Đã bật xác thực 2 lớp"
+                      >
+                        <ShieldCheck className="h-3 w-3" /> 2FA
+                      </span>
+                    ) : null}
                     {u.status === "disabled" && (
                       <span className="rounded-full bg-[#fef3f2] px-2.5 py-0.5 text-xs font-medium text-[#b42318] ring-1 ring-inset ring-[#fecdca]">
                         Đã khóa
@@ -199,6 +223,20 @@ function UsersPage() {
                       <DropdownMenuItem onSelect={() => setResetFor({ id: u.id, email: u.email })}>
                         <KeyRound className="mr-2 h-4 w-4" /> Đặt lại mật khẩu
                       </DropdownMenuItem>
+                      {u.totp_enabled ? (
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            if (
+                              window.confirm(
+                                `Tắt xác thực 2 lớp của ${u.email}? Dùng khi họ mất điện thoại; họ đăng nhập bằng mật khẩu rồi bật lại.`,
+                              )
+                            )
+                              reset2fa.mutate(u.id);
+                          }}
+                        >
+                          <ShieldOff className="mr-2 h-4 w-4" /> Tắt xác thực 2 lớp
+                        </DropdownMenuItem>
+                      ) : null}
                       {u.id !== meId &&
                         (u.status === "active" ? (
                           <DropdownMenuItem

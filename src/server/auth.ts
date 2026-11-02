@@ -8,6 +8,7 @@ import {
 import { canAccess, type Area, type Role } from "@/lib/roles";
 import { getDb } from "./db";
 import { getEnv, isProduction } from "./env";
+import { generateRecoveryCodes, generateSecret, otpauthUri, verifyTotp } from "./totp";
 
 /**
  * Admin accounts: each person signs in with their own email + password.
@@ -17,7 +18,14 @@ import { getEnv, isProduction } from "./env";
  * account (and stays a recovery path while no account exists).
  */
 
-type AdminSession = { uid?: number; v?: number; at?: number };
+/** p2fa: user id that passed the password step and still owes a 2FA code (since p2faAt). */
+type AdminSession = {
+  uid?: number | undefined;
+  v?: number | undefined;
+  at?: number | undefined;
+  p2fa?: number | undefined;
+  p2faAt?: number | undefined;
+};
 
 export interface AdminUser {
   id: number;
@@ -28,6 +36,8 @@ export interface AdminUser {
   status: "active" | "disabled";
   last_login_at: string | null;
   created_at: string;
+  /** 1 when two-factor sign-in is on. */
+  totp_enabled: number;
 }
 
 interface UserRow extends AdminUser {
@@ -35,7 +45,10 @@ interface UserRow extends AdminUser {
   session_version: number;
 }
 
-const USER_COLS = "id, email, name, title, role, status, last_login_at, created_at";
+const USER_COLS = "id, email, name, title, role, status, last_login_at, created_at, totp_enabled";
+
+/** How long a passed password step waits for the 2FA code. */
+const SECOND_FACTOR_MS = 5 * 60_000;
 
 const LOCKOUT = {
   windowMinutes: 15,
@@ -181,7 +194,7 @@ export async function needsSetup(): Promise<boolean> {
 }
 
 export type LoginResult =
-  { ok: true; user: AdminUser } | { ok: false; error: "invalid" | "locked" | "setup" };
+  { ok: true; user: AdminUser } | { ok: false; error: "invalid" | "locked" | "setup" | "2fa" };
 
 async function recentFailures(column: "email" | "ip", value: string) {
   const db = await getDb();
@@ -227,11 +240,152 @@ export async function loginAdmin(emailInput: string, password: string): Promise<
     await new Promise((r) => setTimeout(r, 600));
     return { ok: false, error: "invalid" };
   }
+  if (row.totp_enabled) {
+    // Password OK; the code step still has to pass before a real session starts.
+    await updateSession<AdminSession>(sessionConfig(), {
+      uid: undefined,
+      v: undefined,
+      p2fa: row.id,
+      p2faAt: Date.now(),
+    });
+    return { ok: false, error: "2fa" };
+  }
+  return finishLogin(row, at);
+}
 
+async function finishLogin(row: UserRow, at: string): Promise<LoginResult> {
+  const db = await getDb();
   await db.run("UPDATE admin_users SET last_login_at = ? WHERE id = ?", [at, row.id]);
-  await startSession(row);
+  await updateSession<AdminSession>(sessionConfig(), {
+    uid: row.id,
+    v: row.session_version,
+    at: Date.now(),
+    p2fa: undefined,
+    p2faAt: undefined,
+  });
   const { password_hash: _h, session_version: _v, ...user } = row;
   return { ok: true, user };
+}
+
+const sha256Hex = async (value: string) =>
+  toHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
+const normalizeRecovery = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+/** Second sign-in step: a 6-digit app code or a one-time recovery code. */
+export async function verifySecondFactor(
+  code: string,
+): Promise<LoginResult | { ok: false; error: "expired" }> {
+  const session = await getSession<AdminSession>(sessionConfig());
+  const { p2fa, p2faAt } = session.data;
+  if (!p2fa || !p2faAt || Date.now() - p2faAt > SECOND_FACTOR_MS)
+    return { ok: false, error: "expired" };
+
+  const db = await getDb();
+  const row = await db.first<
+    UserRow & {
+      totp_secret: string | null;
+      totp_last_step: number | null;
+      recovery_codes: string | null;
+    }
+  >(
+    `SELECT ${USER_COLS}, password_hash, session_version, totp_secret, totp_last_step, recovery_codes
+     FROM admin_users WHERE id = ?`,
+    [p2fa],
+  );
+  if (!row || row.status !== "active" || !row.totp_secret) return { ok: false, error: "expired" };
+
+  const ip = requestIp();
+  if ((await recentFailures("email", row.email)) >= LOCKOUT.perEmail)
+    return { ok: false, error: "locked" };
+
+  const at = new Date().toISOString();
+  const step = await verifyTotp(row.totp_secret, code, row.totp_last_step);
+  let ok = step !== null;
+  if (step !== null) {
+    await db.run("UPDATE admin_users SET totp_last_step = ? WHERE id = ?", [step, row.id]);
+  } else if (normalizeRecovery(code).length === 8 && row.recovery_codes) {
+    const hashes = JSON.parse(row.recovery_codes) as string[];
+    const hash = await sha256Hex(normalizeRecovery(code));
+    if (hashes.includes(hash)) {
+      ok = true;
+      // Each recovery code works once.
+      await db.run("UPDATE admin_users SET recovery_codes = ? WHERE id = ?", [
+        JSON.stringify(hashes.filter((h) => h !== hash)),
+        row.id,
+      ]);
+    }
+  }
+  await db.run("INSERT INTO login_attempts (email, ip, success, created_at) VALUES (?, ?, ?, ?)", [
+    row.email,
+    ip,
+    ok ? 1 : 0,
+    at,
+  ]);
+  if (!ok) {
+    await new Promise((r) => setTimeout(r, 600));
+    return { ok: false, error: "invalid" };
+  }
+  return finishLogin(row, at);
+}
+
+/* ---------------------------------------------------- 2FA enrolment */
+
+/** Start enrolment: store a new (not yet active) secret and return what the app needs. */
+export async function beginTwoFactor(user: AdminUser) {
+  const secret = generateSecret();
+  const db = await getDb();
+  await db.run("UPDATE admin_users SET totp_secret = ?, totp_enabled = 0 WHERE id = ?", [
+    secret,
+    user.id,
+  ]);
+  return { secret, uri: otpauthUri(secret, user.email) };
+}
+
+/** Finish enrolment with a code from the app; returns the recovery codes (shown once). */
+export async function confirmTwoFactor(userId: number, code: string): Promise<string[] | null> {
+  const db = await getDb();
+  const row = await db.first<{ totp_secret: string | null }>(
+    "SELECT totp_secret FROM admin_users WHERE id = ?",
+    [userId],
+  );
+  if (!row?.totp_secret) return null;
+  const step = await verifyTotp(row.totp_secret, code, null);
+  if (step === null) return null;
+  const codes = generateRecoveryCodes();
+  const hashes = await Promise.all(codes.map((c) => sha256Hex(normalizeRecovery(c))));
+  await db.run(
+    "UPDATE admin_users SET totp_enabled = 1, totp_last_step = ?, recovery_codes = ? WHERE id = ?",
+    [step, JSON.stringify(hashes), userId],
+  );
+  return codes;
+}
+
+export async function disableTwoFactor(userId: number) {
+  const db = await getDb();
+  await db.run(
+    "UPDATE admin_users SET totp_enabled = 0, totp_secret = NULL, totp_last_step = NULL, recovery_codes = NULL WHERE id = ?",
+    [userId],
+  );
+}
+
+/** Check a current 2FA code for an enrolled user (used before turning 2FA off). */
+export async function checkTwoFactorCode(userId: number, code: string): Promise<boolean> {
+  const db = await getDb();
+  const row = await db.first<{ totp_secret: string | null; totp_last_step: number | null }>(
+    "SELECT totp_secret, totp_last_step FROM admin_users WHERE id = ?",
+    [userId],
+  );
+  if (!row?.totp_secret) return false;
+  return (await verifyTotp(row.totp_secret, code, row.totp_last_step)) !== null;
+}
+
+export async function recoveryCodesLeft(userId: number): Promise<number> {
+  const db = await getDb();
+  const row = await db.first<{ recovery_codes: string | null }>(
+    "SELECT recovery_codes FROM admin_users WHERE id = ?",
+    [userId],
+  );
+  return row?.recovery_codes ? (JSON.parse(row.recovery_codes) as string[]).length : 0;
 }
 
 /** First run: create the owner account, guarded by the ADMIN_PASSWORD setup key. */

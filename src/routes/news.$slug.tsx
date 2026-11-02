@@ -1,6 +1,6 @@
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { getPostBySlug, isLive } from "@/functions/posts";
+import { getPostBySlug, isLive, parseTags } from "@/functions/posts";
 import { businessConfig } from "@/config/business";
 import { images } from "@/config/images";
 import { buildArticleSchema, buildFaqSchema } from "@/config/seo";
@@ -22,18 +22,19 @@ export const Route = createFileRoute("/news/$slug")({
     post
       ? pageHead(
           {
-            title: `${post.title_en} | ${businessConfig.businessName}`,
-            description: post.excerpt_en || post.title_en,
+            // Dedicated SEO fields win; otherwise the title and excerpt.
+            title: post.seo_title_en || `${post.title_en} | ${businessConfig.businessName}`,
+            description: post.seo_desc_en || post.excerpt_en || post.title_en,
             path: `/news/${post.slug}`,
-            ...(post.cover_url && { ogImage: post.cover_url }),
+            ...((post.og_image || post.cover_url) && { ogImage: post.og_image || post.cover_url! }),
             noindex: !isLive(post),
           },
           [
             buildArticleSchema({
               slug: post.slug,
               title: post.title_en,
-              description: post.excerpt_en || post.title_en,
-              image: post.cover_url,
+              description: post.seo_desc_en || post.excerpt_en || post.title_en,
+              image: post.og_image || post.cover_url,
               inLanguage: [post.body_en && "en", post.body_vi && "vi"].filter((l): l is string =>
                 Boolean(l),
               ),
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/news/$slug")({
 const copy = {
   back: { en: "All news", vi: "Tất cả tin tức" },
   by: { en: "By", vi: "Tác giả:" },
+  tags: { en: "Tags", vi: "Thẻ" },
   draft: { en: "Draft preview — not visible to visitors", vi: "Bản nháp — khách chưa xem được" },
   ctaTitle: { en: "Interested in Vietnamese coffee?", vi: "Bạn quan tâm cà phê Việt Nam?" },
   ctaBody: {
@@ -93,6 +95,16 @@ function ArticlePage() {
             </p>
           )}
           <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-primary">
+            {post.category_slug && (
+              <Link
+                to="/news"
+                search={{ category: post.category_slug }}
+                className="hover:underline"
+              >
+                {t({ en: post.category_en ?? "", vi: post.category_vi ?? "" })}
+              </Link>
+            )}
+            {post.category_slug && " · "}
             {formatPostDate(post.published_at ?? post.updated_at, lang)}
           </p>
           {post.author && (
@@ -120,6 +132,18 @@ function ArticlePage() {
           }}
         />
       </div>
+      {parseTags(post.tags).length > 0 && (
+        <div className="bg-white pb-14">
+          <div className="container mx-auto flex max-w-3xl flex-wrap items-center gap-2 px-4">
+            <span className="text-sm font-semibold text-gray-500">{t(copy.tags)}:</span>
+            {parseTags(post.tags).map((tag) => (
+              <span key={tag} className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <section className="bg-gray-50 py-16">
         <div className="container mx-auto flex max-w-4xl flex-col items-start gap-6 rounded-2xl bg-brand-ink px-8 py-10 text-white md:flex-row md:items-center md:justify-between md:px-12">

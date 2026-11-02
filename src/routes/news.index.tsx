@@ -2,6 +2,8 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Newspaper } from "lucide-react";
 import { HeroMedia } from "@/components/HeroMedia";
 import { listPublishedPosts } from "@/functions/posts";
+import { listCategories } from "@/functions/categories";
+import { z } from "zod";
 import { images } from "@/config/images";
 import { businessConfig } from "@/config/business";
 import { pageHead } from "@/lib/seo-head";
@@ -9,7 +11,18 @@ import { useLang } from "@/lib/i18n";
 import { formatPostDate } from "@/lib/date";
 
 export const Route = createFileRoute("/news/")({
-  loader: () => listPublishedPosts({ data: {} }).catch(() => []),
+  validateSearch: (search) =>
+    z.object({ category: z.string().max(80).optional().catch(undefined) }).parse(search),
+  loaderDeps: ({ search }) => ({ category: search.category }),
+  loader: async ({ deps }) => {
+    const [posts, categories] = await Promise.all([
+      listPublishedPosts({ data: deps.category ? { category: deps.category } : {} }).catch(
+        () => [],
+      ),
+      listCategories().catch(() => []),
+    ]);
+    return { posts, categories };
+  },
   head: () =>
     pageHead({
       title: `News | ${businessConfig.businessName}`,
@@ -31,11 +44,18 @@ const copy = {
     vi: "Chưa có bài viết — hãy quay lại sau nhé.",
   },
   read: { en: "Read article", vi: "Đọc bài" },
+  all: { en: "All", vi: "Tất cả" },
+  emptyCategory: {
+    en: "No articles in this category yet.",
+    vi: "Chưa có bài viết trong danh mục này.",
+  },
 };
 
 function NewsPage() {
-  const posts = Route.useLoaderData();
+  const { posts, categories } = Route.useLoaderData();
+  const { category } = Route.useSearch();
   const { t, lang } = useLang();
+  const shown = categories.filter((c) => c.posts > 0 || c.slug === category);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -56,10 +76,35 @@ function NewsPage() {
 
       <section className="bg-gray-50 py-20">
         <div className="container mx-auto px-4">
+          {shown.length > 0 && (
+            <nav aria-label={t(copy.kicker)} className="mb-10 flex flex-wrap gap-2">
+              {[
+                { slug: undefined, label: t(copy.all) },
+                ...shown.map((c) => ({ slug: c.slug, label: t({ en: c.name_en, vi: c.name_vi }) })),
+              ].map((chip) => {
+                const active = chip.slug === category;
+                return (
+                  <Link
+                    key={chip.slug ?? "all"}
+                    to="/news"
+                    search={chip.slug ? { category: chip.slug } : {}}
+                    aria-current={active ? "page" : undefined}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                      active
+                        ? "bg-ld-navy text-white"
+                        : "bg-white text-gray-700 ring-1 ring-inset ring-gray-200 hover:ring-ld-gold"
+                    }`}
+                  >
+                    {chip.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
           {posts.length === 0 ? (
             <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center text-gray-500">
               <Newspaper className="h-12 w-12 text-gray-300" />
-              <p className="text-lg">{t(copy.empty)}</p>
+              <p className="text-lg">{t(category ? copy.emptyCategory : copy.empty)}</p>
             </div>
           ) : (
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -80,6 +125,11 @@ function NewsPage() {
                   </div>
                   <div className="flex flex-1 flex-col p-6">
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      {post.category_slug && (
+                        <span className="text-ld-gold-dark">
+                          {t({ en: post.category_en ?? "", vi: post.category_vi ?? "" })} ·{" "}
+                        </span>
+                      )}
                       {formatPostDate(post.published_at, lang)}
                     </p>
                     <h2 className="mb-3 text-xl font-bold leading-snug text-gray-900">

@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, ShieldAlert } from "lucide-react";
-import { adminLogin, adminSetup, getAdminStatus } from "@/functions/admin";
+import { adminLogin, adminSetup, adminVerify2fa, getAdminStatus } from "@/functions/admin";
 import { DEFAULT_ENQUIRY_FILTERS, listEnquiries } from "@/functions/enquiries";
 import { listChats } from "@/functions/chat";
 import { AdminFrame } from "@/components/admin/AdminShell";
@@ -65,21 +65,29 @@ function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "invalid" | "locked" | "error">("idle");
+  const [needCode, setNeedCode] = useState(false);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setState("loading");
     try {
       const res = await adminLogin({ data: { email, password } });
-      if (!res.ok)
+      if (!res.ok) {
+        if (res.error === "2fa") {
+          setState("idle");
+          return setNeedCode(true);
+        }
         return setState(
           res.error === "locked" ? "locked" : res.error === "setup" ? "error" : "invalid",
         );
+      }
       await router.invalidate();
     } catch {
       setState("error");
     }
   };
+
+  if (needCode) return <SecondFactorScreen onExpired={() => setNeedCode(false)} />;
 
   return (
     <AuthCard title="Đăng nhập" subtitle="Trang quản trị yêu cầu báo giá, hội thoại và tin tức.">
@@ -133,6 +141,93 @@ function LoginScreen() {
         <p className="text-center text-xs text-admin-dim">
           Quên mật khẩu? Liên hệ quản trị viên để được đặt lại.
         </p>
+      </form>
+    </AuthCard>
+  );
+}
+
+/** Sign-in step 2: the 6-digit code from the authenticator app (or a recovery code). */
+function SecondFactorScreen({ onExpired }: { onExpired: () => void }) {
+  const router = useRouter();
+  const [code, setCode] = useState("");
+  const [recovery, setRecovery] = useState(false);
+  const [state, setState] = useState<"idle" | "loading" | "invalid" | "locked" | "expired">("idle");
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setState("loading");
+    try {
+      const res = await adminVerify2fa({ data: { code } });
+      if (!res.ok) {
+        if (res.error === "expired") return setState("expired");
+        return setState(res.error === "locked" ? "locked" : "invalid");
+      }
+      await router.invalidate();
+    } catch {
+      setState("invalid");
+    }
+  };
+
+  return (
+    <AuthCard
+      title="Xác thực 2 lớp"
+      subtitle={
+        recovery
+          ? "Nhập một mã khôi phục (dạng XXXX-XXXX). Mỗi mã chỉ dùng được một lần."
+          : "Mở ứng dụng xác thực (Google Authenticator…) và nhập mã 6 số của Lean Export Admin."
+      }
+    >
+      <form onSubmit={submit} className="grid gap-5">
+        <label className="admin-label">
+          {recovery ? "Mã khôi phục" : "Mã xác thực"}
+          <input
+            autoFocus
+            required
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            inputMode={recovery ? "text" : "numeric"}
+            autoComplete="one-time-code"
+            maxLength={recovery ? 12 : 6}
+            placeholder={recovery ? "XXXX-XXXX" : "123456"}
+            className="admin-input text-center font-mono text-lg tracking-[0.3em]"
+          />
+        </label>
+        {state === "invalid" && (
+          <p role="alert" className="text-sm text-[#b42318]">
+            Mã không đúng hoặc đã dùng. Kiểm tra giờ trên điện thoại rồi nhập mã mới.
+          </p>
+        )}
+        {state === "locked" && (
+          <p role="alert" className="text-sm text-[#b42318]">
+            Nhập sai quá nhiều lần. Tài khoản tạm khóa 15 phút.
+          </p>
+        )}
+        {state === "expired" && (
+          <p role="alert" className="text-sm text-[#b42318]">
+            Phiên đăng nhập đã hết hạn.{" "}
+            <button type="button" className="font-medium underline" onClick={onExpired}>
+              Đăng nhập lại
+            </button>
+          </p>
+        )}
+        <button
+          type="submit"
+          className="admin-btn admin-btn-primary w-full"
+          disabled={state === "loading"}
+        >
+          {state === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Xác nhận"}
+        </button>
+        <button
+          type="button"
+          className="text-center text-sm text-admin-muted hover:text-admin-ink"
+          onClick={() => {
+            setRecovery((r) => !r);
+            setCode("");
+            setState("idle");
+          }}
+        >
+          {recovery ? "Dùng mã từ ứng dụng" : "Mất điện thoại? Dùng mã khôi phục"}
+        </button>
       </form>
     </AuthCard>
   );

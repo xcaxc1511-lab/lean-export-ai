@@ -111,6 +111,14 @@ const SCHEMA = [
     created_at TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log (created_at)`,
+  `CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,
+    name_vi TEXT NOT NULL,
+    name_en TEXT NOT NULL,
+    sort INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`,
   // Website settings edited in /admin/settings (see src/server/settings.ts).
   // Uploaded images, served from /media/<id> (see src/routes/media.$file.ts).
   `CREATE TABLE IF NOT EXISTS media (
@@ -147,7 +155,22 @@ const SCHEMA = [
  * Columns added after a table first shipped. SQLite has no "ADD COLUMN IF NOT
  * EXISTS", so each runs once and "duplicate column" errors are ignored.
  */
-const MIGRATIONS = [`ALTER TABLE posts ADD COLUMN author_id INTEGER`];
+const MIGRATIONS = [
+  `ALTER TABLE posts ADD COLUMN author_id INTEGER`,
+  // Two-factor sign-in (src/server/totp.ts).
+  `ALTER TABLE admin_users ADD COLUMN totp_secret TEXT`,
+  `ALTER TABLE admin_users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE admin_users ADD COLUMN totp_last_step INTEGER`,
+  `ALTER TABLE admin_users ADD COLUMN recovery_codes TEXT`,
+  // Blog: categories, tags and per-language SEO fields.
+  `ALTER TABLE posts ADD COLUMN category_id INTEGER`,
+  `ALTER TABLE posts ADD COLUMN tags TEXT`,
+  `ALTER TABLE posts ADD COLUMN seo_title_vi TEXT`,
+  `ALTER TABLE posts ADD COLUMN seo_title_en TEXT`,
+  `ALTER TABLE posts ADD COLUMN seo_desc_vi TEXT`,
+  `ALTER TABLE posts ADD COLUMN seo_desc_en TEXT`,
+  `ALTER TABLE posts ADD COLUMN og_image TEXT`,
+];
 
 function d1Adapter(d1: NonNullable<ReturnType<typeof cloudflareEnv>>["DB"] & object): Db {
   const stmt = (sql: string, params: unknown[] = []) =>
