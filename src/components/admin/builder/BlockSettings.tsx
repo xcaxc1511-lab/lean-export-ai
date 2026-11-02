@@ -8,6 +8,7 @@ import {
   Minus,
   Plus,
   Trash2,
+  Images,
 } from "lucide-react";
 import {
   safeUrl,
@@ -18,6 +19,7 @@ import {
   type TextColor,
 } from "@/lib/blocks";
 import { widgetOf } from "./catalog";
+import { useMediaPicker } from "./media-picker";
 
 /* ------------------------------------------------------------ controls */
 
@@ -168,6 +170,7 @@ export function BlockSettings({
   onClose: () => void;
 }) {
   const set = onChange as (patch: Partial<typeof b>) => void;
+  const pickImage = useMediaPicker();
   const widget = widgetOf(b.type);
   const defaultSpace: Space = b.type === "heading" ? "sm" : "md";
 
@@ -214,7 +217,18 @@ export function BlockSettings({
       case "media-text":
         return (
           <>
-            <Field label="Link ảnh" hint="Dán link ảnh https://…">
+            <button
+              type="button"
+              className="admin-btn admin-btn-secondary"
+              onClick={() =>
+                pickImage((img) =>
+                  set({ url: img.url, ...(!b.alt && img.alt ? { alt: img.alt } : {}) }),
+                )
+              }
+            >
+              <Images className="h-4 w-4" /> {b.url ? "Đổi ảnh từ thư viện" : "Chọn từ thư viện"}
+            </button>
+            <Field label="Link ảnh" hint="Hoặc dán link ảnh https://…">
               <input
                 className="admin-input"
                 value={b.url}

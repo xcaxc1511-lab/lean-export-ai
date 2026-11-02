@@ -5,6 +5,9 @@ import { currentUser, requireAdmin } from "@/server/auth";
 import { canAccess } from "@/lib/roles";
 import { audit } from "@/server/audit";
 
+/** "scheduled" goes live by itself once published_at has passed. */
+export type PostStatus = "draft" | "published" | "scheduled";
+
 export interface Post {
   id: number;
   slug: string;
@@ -15,7 +18,7 @@ export interface Post {
   body_en: string | null;
   body_vi: string | null;
   cover_url: string | null;
-  status: "draft" | "published";
+  status: PostStatus;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -46,8 +49,14 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
-/** SQL condition for posts the public can see. */
-export const PUBLISHED_SQL = "status = 'published'";
+/** SQL condition for posts the public can see (scheduled ones once their time has come). */
+export const PUBLISHED_SQL =
+  "(status = 'published' OR (status = 'scheduled' AND published_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now')))";
+
+/** Same rule as PUBLISHED_SQL, for one post in code. */
+export const isLive = (p: { status: string; published_at: string | null }) =>
+  p.status === "published" ||
+  (p.status === "scheduled" && !!p.published_at && p.published_at <= new Date().toISOString());
 
 /** Public: published posts, newest first. */
 export const listPublishedPosts = createServerFn({ method: "GET" })
@@ -57,7 +66,7 @@ export const listPublishedPosts = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const db = await getDb();
     return db.all<PostSummary>(
-      `SELECT ${SUMMARY_COLS} FROM posts WHERE status = 'published'
+      `SELECT ${SUMMARY_COLS} FROM posts WHERE ${PUBLISHED_SQL}
        ORDER BY published_at DESC LIMIT ?`,
       [data.limit],
     );
@@ -74,8 +83,7 @@ export const getPostBySlug = createServerFn({ method: "GET" })
       [data.slug],
     );
     if (!post) return null;
-    if (post.status !== "published" && !canAccess((await currentUser())?.role, "posts"))
-      return null;
+    if (!isLive(post) && !canAccess((await currentUser())?.role, "posts")) return null;
     const { author_name, author_title, ...rest } = post;
     const author: PostAuthor | null = author_name
       ? { name: author_name, title: author_title }
@@ -85,7 +93,7 @@ export const getPostBySlug = createServerFn({ method: "GET" })
 
 /** Admin: all posts. */
 export const listAllPosts = createServerFn({ method: "GET" }).handler(async () => {
-  await requireAdmin();
+  await requireAdmin("posts");
   const db = await getDb();
   // Full rows: the admin list scores each post's AEO/GEO from its body.
   return db.all<Post>("SELECT * FROM posts ORDER BY updated_at DESC");
@@ -117,7 +125,9 @@ const postInput = z.object({
     .refine((v) => v === "" || /^https?:\/\//.test(v) || v.startsWith("/"), "Invalid image URL")
     .optional()
     .default(""),
-  status: z.enum(["draft", "published"]),
+  status: z.enum(["draft", "published", "scheduled"]),
+  /** Go-live time (ISO) when status is "scheduled". */
+  publish_at: z.string().datetime().optional(),
 });
 
 export type PostInput = z.input<typeof postInput>;
@@ -144,11 +154,19 @@ export const savePost = createServerFn({ method: "POST" })
       : null;
     if (data.id && !existing) throw new Error("NOT_FOUND");
 
-    // First publish stamps the date; later edits keep it.
+    if (data.status === "scheduled" && (!data.publish_at || data.publish_at <= now))
+      throw new Error("SCHEDULE_IN_PAST");
+    // Scheduled: the chosen time. Publishing: keep the original date if it was already
+    // live, otherwise now. Drafts keep whatever date they had.
+    const wasLive = existing ? isLive(existing) : false;
     const publishedAt =
-      data.status === "published"
-        ? (existing?.published_at ?? now)
-        : (existing?.published_at ?? null);
+      data.status === "scheduled"
+        ? data.publish_at!
+        : data.status === "published"
+          ? wasLive
+            ? (existing?.published_at ?? now)
+            : now
+          : (existing?.published_at ?? null);
 
     const values = [
       slug,
@@ -171,8 +189,9 @@ export const savePost = createServerFn({ method: "POST" })
          WHERE id = ?`,
         [...values, existing.id],
       );
-      await audit(user, postAction(existing.status, data.status), data.title_vi, `/news/${slug}`);
-      return { id: existing.id, slug };
+      await audit(user, postAction(wasLive, data.status), data.title_vi, `/news/${slug}`);
+      await saveRevision(existing.id, { ...data, slug }, user.name);
+      return { id: existing.id, slug, publishedAt };
     }
     const { lastId } = await db.run(
       `INSERT INTO posts (slug, title_en, title_vi, excerpt_en, excerpt_vi, body_en, body_vi,
@@ -180,20 +199,81 @@ export const savePost = createServerFn({ method: "POST" })
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [...values, now, user.id],
     );
-    await audit(
-      user,
-      data.status === "published" ? "post.publish" : "post.create",
-      data.title_vi,
-      `/news/${slug}`,
-    );
-    return { id: lastId, slug };
+    await audit(user, postAction(false, data.status), data.title_vi, `/news/${slug}`);
+    await saveRevision(lastId, { ...data, slug }, user.name);
+    return { id: lastId, slug, publishedAt };
   });
 
-function postAction(before: string, after: string) {
-  if (before !== "published" && after === "published") return "post.publish";
-  if (before === "published" && after !== "published") return "post.unpublish";
-  return "post.update";
+function postAction(wasLive: boolean, status: PostStatus) {
+  if (status === "scheduled") return "post.schedule";
+  if (!wasLive && status === "published") return "post.publish";
+  if (wasLive && status === "draft") return "post.unpublish";
+  return wasLive || status !== "draft" ? "post.update" : "post.create";
 }
+
+/* ----------------------------------------------------------- revisions */
+
+const KEEP_REVISIONS = 30;
+
+/** Store the saved state as a version; keeps the newest 30 per post. */
+async function saveRevision(postId: number, data: PostInput & { slug: string }, author: string) {
+  const db = await getDb();
+  await db.run(
+    "INSERT INTO post_revisions (post_id, data, status, author_name, created_at) VALUES (?, ?, ?, ?, ?)",
+    [postId, JSON.stringify(data), data.status, author, new Date().toISOString()],
+  );
+  await db.run(
+    `DELETE FROM post_revisions WHERE post_id = ? AND id NOT IN (
+       SELECT id FROM post_revisions WHERE post_id = ? ORDER BY id DESC LIMIT ?
+     )`,
+    [postId, postId, KEEP_REVISIONS],
+  );
+}
+
+export interface PostRevisionSummary {
+  id: number;
+  status: PostStatus;
+  author_name: string | null;
+  created_at: string;
+  title_vi: string;
+}
+
+export const listRevisions = createServerFn({ method: "GET" })
+  .validator((data: unknown) => z.object({ postId: z.number().int().positive() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin("posts");
+    const db = await getDb();
+    const rows = await db.all<{
+      id: number;
+      status: PostStatus;
+      author_name: string | null;
+      created_at: string;
+      data: string;
+    }>(
+      "SELECT id, status, author_name, created_at, data FROM post_revisions WHERE post_id = ? ORDER BY id DESC",
+      [data.postId],
+    );
+    return rows.map(({ data: json, ...r }): PostRevisionSummary => {
+      let title = "";
+      try {
+        title = (JSON.parse(json) as PostInput).title_vi;
+      } catch {
+        /* corrupt row: show it untitled */
+      }
+      return { ...r, title_vi: title };
+    });
+  });
+
+export const getRevision = createServerFn({ method: "GET" })
+  .validator((data: unknown) => z.object({ id: z.number().int().positive() }).parse(data))
+  .handler(async ({ data }) => {
+    await requireAdmin("posts");
+    const db = await getDb();
+    const row = await db.first<{ data: string }>("SELECT data FROM post_revisions WHERE id = ?", [
+      data.id,
+    ]);
+    return row ? (JSON.parse(row.data) as PostInput & { slug: string }) : null;
+  });
 
 /** Admin: delete a post. */
 export const deletePost = createServerFn({ method: "POST" })

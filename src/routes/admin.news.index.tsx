@@ -6,13 +6,13 @@ import { AdminSubbar, AdminTopbar } from "@/components/admin/AdminShell";
 import { ScoreChip } from "@/components/admin/AeoGeoPanel";
 import { PostStatusBadge } from "@/components/admin/PostStatusBadge";
 import { scorePostBothLangs } from "@/lib/aeo-geo";
-import { listAllPosts } from "@/functions/posts";
+import { isLive, listAllPosts } from "@/functions/posts";
 
 export const Route = createFileRoute("/admin/news/")({
   component: NewsAdminPage,
 });
 
-type Filter = "all" | "published" | "draft";
+type Filter = "all" | "published" | "scheduled" | "draft";
 
 const fmtDate = (iso: string | null) =>
   iso
@@ -29,19 +29,23 @@ function NewsAdminPage() {
   const [term, setTerm] = useState("");
   const query = useQuery({ queryKey: ["posts", "all"], queryFn: () => listAllPosts() });
   const posts = query.data ?? [];
-  const published = posts.filter((p) => p.status === "published").length;
+  const stateOf = (p: (typeof posts)[number]): Exclude<Filter, "all"> =>
+    isLive(p) ? "published" : p.status === "scheduled" ? "scheduled" : "draft";
+  const count = (f: Exclude<Filter, "all">) => posts.filter((p) => stateOf(p) === f).length;
+  const published = count("published");
 
   const needle = term.trim().toLowerCase();
   const visible = posts.filter(
     (p) =>
-      (filter === "all" || p.status === filter) &&
+      (filter === "all" || stateOf(p) === filter) &&
       (!needle || `${p.title_vi} ${p.title_en} ${p.slug}`.toLowerCase().includes(needle)),
   );
 
   const tabs: [Filter, string, number][] = [
     ["all", "Tất cả", posts.length],
     ["published", "Đã đăng", published],
-    ["draft", "Nháp", posts.length - published],
+    ["scheduled", "Đã lên lịch", count("scheduled")],
+    ["draft", "Nháp", count("draft")],
   ];
 
   const newPostButton = (
@@ -158,7 +162,10 @@ function NewsAdminPage() {
                               {post.title_vi}
                             </span>
                             <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                              <PostStatusBadge published={post.status === "published"} />
+                              <PostStatusBadge
+                                status={post.status}
+                                publishedAt={post.published_at}
+                              />
                               <ScoreChip score={scores.vi.overall} prefix="VI" />
                               <ScoreChip score={scores.en.overall} prefix="EN" />
                               <span className="text-xs tabular-nums text-admin-dim">
@@ -216,7 +223,10 @@ function NewsAdminPage() {
                             </td>
                             <td className="max-w-[280px] truncate">{post.title_en}</td>
                             <td>
-                              <PostStatusBadge published={post.status === "published"} />
+                              <PostStatusBadge
+                                status={post.status}
+                                publishedAt={post.published_at}
+                              />
                             </td>
                             <td>
                               <span className="flex items-center gap-1.5">

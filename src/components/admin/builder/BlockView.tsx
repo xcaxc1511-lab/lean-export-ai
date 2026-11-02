@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ImagePlus, Plus, X, Youtube } from "lucide-react";
+import { ImagePlus, Images, Plus, X, Youtube } from "lucide-react";
 import {
   BUTTON_CLASS,
   CALLOUT_TONE,
@@ -14,6 +14,7 @@ import {
   type Rich,
 } from "@/lib/blocks";
 import { PlainText, RichText } from "./editable";
+import { useMediaPicker, type PickedImage } from "./media-picker";
 
 export interface BlockActions {
   /** Replace this block with a patched copy. */
@@ -43,16 +44,29 @@ function UrlPlaceholder({
   label,
   hint,
   onSubmit,
+  onLibrary,
 }: {
   icon: typeof ImagePlus;
   label: string;
   hint: string;
   onSubmit: (url: string) => void;
+  /** Image blocks: choose from / upload to the media library. */
+  onLibrary?: (() => void) | undefined;
 }) {
   const [url, setUrl] = useState("");
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-admin-field bg-admin-row px-6 py-8 text-center">
       <Icon className="h-8 w-8 text-[#98a2b3]" />
+      {onLibrary && (
+        <button
+          type="button"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={onLibrary}
+          className="admin-btn admin-btn-primary"
+        >
+          <Images className="h-4 w-4" /> Chọn từ thư viện / Tải ảnh lên
+        </button>
+      )}
       <p className="text-sm font-medium text-admin-text">{label}</p>
       <form
         className="flex w-full max-w-md gap-2"
@@ -90,6 +104,12 @@ function ImagePreview({ url, alt }: { url: string; alt: string }) {
 
 export function BlockView({ block: b, actions, focus, onFocused }: Props) {
   const set = actions.update as (patch: Partial<typeof b>) => void;
+  const pickImage = useMediaPicker();
+  /** Fill url (and alt, if still empty) from the library. */
+  const fromLibrary = (alt: string) => () =>
+    pickImage((img: PickedImage) =>
+      set({ url: img.url, ...(!alt && img.alt ? { alt: img.alt } : {}) } as Partial<typeof b>),
+    );
   const focusAt = (index?: number) =>
     focus && (focus.index ?? 0) === (index ?? 0) ? focus.at : false;
 
@@ -177,9 +197,10 @@ export function BlockView({ block: b, actions, focus, onFocused }: Props) {
         return (
           <UrlPlaceholder
             icon={ImagePlus}
-            label="Dán link ảnh để chèn"
-            hint="Ảnh từ Unsplash, Google Drive (link công khai) hoặc website. Nhớ điền Mô tả ảnh ở bảng bên trái."
+            label="hoặc dán link ảnh"
+            hint="Nhớ điền Mô tả ảnh (alt) ở bảng bên trái để Google và AI hiểu nội dung ảnh."
             onSubmit={(url) => set({ url })}
+            onLibrary={fromLibrary(b.alt)}
           />
         );
       return (
@@ -201,9 +222,10 @@ export function BlockView({ block: b, actions, focus, onFocused }: Props) {
       ) : (
         <UrlPlaceholder
           icon={ImagePlus}
-          label="Dán link ảnh"
+          label="hoặc dán link ảnh"
           hint="Ảnh nằm cạnh đoạn chữ."
           onSubmit={(url) => set({ url })}
+          onLibrary={fromLibrary(b.alt)}
         />
       );
       const text = (

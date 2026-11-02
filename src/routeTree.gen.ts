@@ -24,15 +24,18 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAccountRouteImport } from './routes/admin.account'
 import { Route as AdminActivityRouteImport } from './routes/admin.activity'
 import { Route as AdminChatsRouteImport } from './routes/admin.chats'
+import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AreasAreaIdRouteImport } from './routes/areas.$areaId'
+import { Route as MediaFileRouteImport } from './routes/media.$file'
 import { Route as NewsIndexRouteImport } from './routes/news.index'
 import { Route as NewsSlugRouteImport } from './routes/news.$slug'
 import { Route as ServicesServiceIdRouteImport } from './routes/services.$serviceId'
 import { Route as AdminNewsIndexRouteImport } from './routes/admin.news.index'
 import { Route as AdminNewsIdRouteImport } from './routes/admin.news.$id'
 import { Route as ApiAdminEnquiriesDotcsvRouteImport } from './routes/api/admin/enquiries[.]csv'
+import { Route as ApiAdminMediaRouteImport } from './routes/api/admin/media'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -109,6 +112,11 @@ const AdminChatsRoute = AdminChatsRouteImport.update({
   path: '/chats',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMediaRoute = AdminMediaRouteImport.update({
+  id: '/media',
+  path: '/media',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -122,6 +130,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
 const AreasAreaIdRoute = AreasAreaIdRouteImport.update({
   id: '/areas/$areaId',
   path: '/areas/$areaId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MediaFileRoute = MediaFileRouteImport.update({
+  id: '/media/$file',
+  path: '/media/$file',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewsIndexRoute = NewsIndexRouteImport.update({
@@ -154,6 +167,11 @@ const ApiAdminEnquiriesDotcsvRoute = ApiAdminEnquiriesDotcsvRouteImport.update({
   path: '/api/admin/enquiries.csv',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminMediaRoute = ApiAdminMediaRouteImport.update({
+  id: '/api/admin/media',
+  path: '/api/admin/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -170,15 +188,18 @@ export interface FileRoutesByFullPath {
   '/admin/account': typeof AdminAccountRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/chats': typeof AdminChatsRoute
+  '/admin/media': typeof AdminMediaRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
+  '/media/$file': typeof MediaFileRoute
   '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
   '/admin/': typeof AdminIndexRoute
   '/news/': typeof NewsIndexRoute
   '/admin/news/$id': typeof AdminNewsIdRoute
   '/api/admin/enquiries.csv': typeof ApiAdminEnquiriesDotcsvRoute
+  '/api/admin/media': typeof ApiAdminMediaRoute
   '/admin/news/': typeof AdminNewsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -195,15 +216,18 @@ export interface FileRoutesByTo {
   '/admin/account': typeof AdminAccountRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/chats': typeof AdminChatsRoute
+  '/admin/media': typeof AdminMediaRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
+  '/media/$file': typeof MediaFileRoute
   '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
   '/admin': typeof AdminIndexRoute
   '/news': typeof NewsIndexRoute
   '/admin/news/$id': typeof AdminNewsIdRoute
   '/api/admin/enquiries.csv': typeof ApiAdminEnquiriesDotcsvRoute
+  '/api/admin/media': typeof ApiAdminMediaRoute
   '/admin/news': typeof AdminNewsIndexRoute
 }
 export interface FileRoutesById {
@@ -222,15 +246,18 @@ export interface FileRoutesById {
   '/admin/account': typeof AdminAccountRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/chats': typeof AdminChatsRoute
+  '/admin/media': typeof AdminMediaRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/areas/$areaId': typeof AreasAreaIdRoute
+  '/media/$file': typeof MediaFileRoute
   '/news/$slug': typeof NewsSlugRoute
   '/services/$serviceId': typeof ServicesServiceIdRoute
   '/admin/': typeof AdminIndexRoute
   '/news/': typeof NewsIndexRoute
   '/admin/news/$id': typeof AdminNewsIdRoute
   '/api/admin/enquiries.csv': typeof ApiAdminEnquiriesDotcsvRoute
+  '/api/admin/media': typeof ApiAdminMediaRoute
   '/admin/news/': typeof AdminNewsIndexRoute
 }
 export interface FileRouteTypes {
@@ -250,15 +277,18 @@ export interface FileRouteTypes {
     | '/admin/account'
     | '/admin/activity'
     | '/admin/chats'
+    | '/admin/media'
     | '/admin/settings'
     | '/admin/users'
     | '/areas/$areaId'
+    | '/media/$file'
     | '/news/$slug'
     | '/services/$serviceId'
     | '/admin/'
     | '/news/'
     | '/admin/news/$id'
     | '/api/admin/enquiries.csv'
+    | '/api/admin/media'
     | '/admin/news/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -275,15 +305,18 @@ export interface FileRouteTypes {
     | '/admin/account'
     | '/admin/activity'
     | '/admin/chats'
+    | '/admin/media'
     | '/admin/settings'
     | '/admin/users'
     | '/areas/$areaId'
+    | '/media/$file'
     | '/news/$slug'
     | '/services/$serviceId'
     | '/admin'
     | '/news'
     | '/admin/news/$id'
     | '/api/admin/enquiries.csv'
+    | '/api/admin/media'
     | '/admin/news'
   id:
     | '__root__'
@@ -301,15 +334,18 @@ export interface FileRouteTypes {
     | '/admin/account'
     | '/admin/activity'
     | '/admin/chats'
+    | '/admin/media'
     | '/admin/settings'
     | '/admin/users'
     | '/areas/$areaId'
+    | '/media/$file'
     | '/news/$slug'
     | '/services/$serviceId'
     | '/admin/'
     | '/news/'
     | '/admin/news/$id'
     | '/api/admin/enquiries.csv'
+    | '/api/admin/media'
     | '/admin/news/'
   fileRoutesById: FileRoutesById
 }
@@ -326,10 +362,12 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   AreasAreaIdRoute: typeof AreasAreaIdRoute
+  MediaFileRoute: typeof MediaFileRoute
   NewsSlugRoute: typeof NewsSlugRoute
   ServicesServiceIdRoute: typeof ServicesServiceIdRoute
   NewsIndexRoute: typeof NewsIndexRoute
   ApiAdminEnquiriesDotcsvRoute: typeof ApiAdminEnquiriesDotcsvRoute
+  ApiAdminMediaRoute: typeof ApiAdminMediaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -439,6 +477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminChatsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/media': {
+      id: '/admin/media'
+      path: '/media'
+      fullPath: '/admin/media'
+      preLoaderRoute: typeof AdminMediaRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/settings'
@@ -458,6 +503,13 @@ declare module '@tanstack/react-router' {
       path: '/areas/$areaId'
       fullPath: '/areas/$areaId'
       preLoaderRoute: typeof AreasAreaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/media/$file': {
+      id: '/media/$file'
+      path: '/media/$file'
+      fullPath: '/media/$file'
+      preLoaderRoute: typeof MediaFileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/news/': {
@@ -502,6 +554,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminEnquiriesDotcsvRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/media': {
+      id: '/api/admin/media'
+      path: '/api/admin/media'
+      fullPath: '/api/admin/media'
+      preLoaderRoute: typeof ApiAdminMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -509,6 +568,7 @@ interface AdminRouteChildren {
   AdminAccountRoute: typeof AdminAccountRoute
   AdminActivityRoute: typeof AdminActivityRoute
   AdminChatsRoute: typeof AdminChatsRoute
+  AdminMediaRoute: typeof AdminMediaRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -520,6 +580,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAccountRoute: AdminAccountRoute,
   AdminActivityRoute: AdminActivityRoute,
   AdminChatsRoute: AdminChatsRoute,
+  AdminMediaRoute: AdminMediaRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -542,10 +603,12 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
   AreasAreaIdRoute: AreasAreaIdRoute,
+  MediaFileRoute: MediaFileRoute,
   NewsSlugRoute: NewsSlugRoute,
   ServicesServiceIdRoute: ServicesServiceIdRoute,
   NewsIndexRoute: NewsIndexRoute,
   ApiAdminEnquiriesDotcsvRoute: ApiAdminEnquiriesDotcsvRoute,
+  ApiAdminMediaRoute: ApiAdminMediaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,6 +1,6 @@
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { getPostBySlug } from "@/functions/posts";
+import { getPostBySlug, isLive } from "@/functions/posts";
 import { businessConfig } from "@/config/business";
 import { images } from "@/config/images";
 import { buildArticleSchema, buildFaqSchema } from "@/config/seo";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/news/$slug")({
             description: post.excerpt_en || post.title_en,
             path: `/news/${post.slug}`,
             ...(post.cover_url && { ogImage: post.cover_url }),
-            noindex: post.status !== "published",
+            noindex: !isLive(post),
           },
           [
             buildArticleSchema({
@@ -87,7 +87,7 @@ function ArticlePage() {
           >
             <ArrowLeft className="h-4 w-4" /> {t(copy.back)}
           </Link>
-          {post.status !== "published" && (
+          {!isLive(post) && (
             <p className="mb-4 inline-block rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
               {t(copy.draft)}
             </p>

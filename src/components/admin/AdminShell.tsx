@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ExternalLink,
   History,
+  Images,
   Settings,
   UserCog,
   UserRound,
@@ -246,6 +247,7 @@ function SidebarBody({
       | "/admin"
       | "/admin/chats"
       | "/admin/news"
+      | "/admin/media"
       | "/admin/users"
       | "/admin/activity"
       | "/admin/settings";
@@ -273,6 +275,14 @@ function SidebarBody({
       area: "chats",
     },
     { to: "/admin/news", label: "Tin tức", icon: Newspaper, exact: false, badge: 0, area: "posts" },
+    {
+      to: "/admin/media",
+      label: "Thư viện ảnh",
+      icon: Images,
+      exact: false,
+      badge: 0,
+      area: "media",
+    },
   ];
   const manage: Item[] = [
     {

@@ -112,6 +112,30 @@ const SCHEMA = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log (created_at)`,
   // Website settings edited in /admin/settings (see src/server/settings.ts).
+  // Uploaded images, served from /media/<id> (see src/routes/media.$file.ts).
+  `CREATE TABLE IF NOT EXISTS media (
+    id TEXT PRIMARY KEY,
+    filename TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    width INTEGER,
+    height INTEGER,
+    alt TEXT,
+    data BLOB NOT NULL,
+    uploaded_by INTEGER,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_media_created ON media (created_at)`,
+  // Saved versions of each post (newest 30 kept).
+  `CREATE TABLE IF NOT EXISTS post_revisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    status TEXT NOT NULL,
+    author_name TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_post_revisions_post ON post_revisions (post_id, id)`,
   `CREATE TABLE IF NOT EXISTS site_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
