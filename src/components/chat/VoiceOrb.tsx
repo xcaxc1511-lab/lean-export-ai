@@ -10,11 +10,13 @@ export function VoiceOrb({
   level,
   active,
   size = 300,
+  className = "",
 }: {
   /** Ref so the animation loop reads the live audio level without re-rendering. */
   level: RefObject<number>;
   active: boolean;
   size?: number;
+  className?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const activeRef = useRef(active);
@@ -193,7 +195,7 @@ export function VoiceOrb({
       ref={canvasRef}
       aria-hidden="true"
       style={{ width: size, height: size }}
-      className="pointer-events-none select-none"
+      className={`pointer-events-none select-none ${className}`}
     />
   );
 }

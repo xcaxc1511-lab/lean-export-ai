@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { AudioLines, MessageCircle, Mic, Phone, PhoneOff, Sparkles, X } from "lucide-react";
 import { getAssistantStatus, sendChatMessage } from "@/functions/chat";
 import { businessConfig } from "@/config/business";
@@ -69,6 +69,19 @@ const copy = {
     vi: "Câu trả lời của AI mang tính tham khảo; giá và điều khoản do đội sales xác nhận.",
   },
 };
+
+/** Equaliser while the assistant speaks: [max height px, duration s, delay s]. */
+const BARS: [number, number, number][] = [
+  [12, 0.8, 0],
+  [22, 0.7, 0.1],
+  [32, 0.85, 0.18],
+  [40, 0.65, 0.06],
+  [46, 0.75, 0.14],
+  [40, 0.68, 0.08],
+  [32, 0.8, 0.16],
+  [22, 0.72, 0.12],
+  [12, 0.78, 0.04],
+];
 
 function readVoiceSession(): { sessionId: string; token: string } | null {
   try {
@@ -308,42 +321,70 @@ export function VoiceAgent({ onClose }: { onClose?: () => void }) {
         </span>
       </div>
 
-      <div className="flex flex-col items-center px-5 pb-5 pt-2">
-        <div className="relative">
-          {/* Soft light pooling under the globe */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-[12%] bottom-[2%] h-[38%] rounded-[50%] bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--ld-gold)_60%,transparent),transparent)] blur-xl"
-          />
-          <VoiceOrb level={level} active={active} size={300} />
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pt-6">
-            <button
-              type="button"
-              onClick={active ? end : start}
-              aria-label={active ? t(copy.end) : t(copy.call)}
-              className={`relative flex h-[72px] w-[72px] items-center justify-center rounded-full text-white shadow-lg shadow-ld-navy/20 ring-1 ring-white/50 backdrop-blur-[3px] transition-colors ${
-                active ? "bg-ld-navy" : "bg-ld-navy/75 hover:bg-ld-navy/90"
-              }`}
-            >
-              {phase === "listening" && (
+      <div className="flex flex-col items-center px-4 pb-5 pt-1">
+        <div
+          className={`vorb ${active ? "is-active" : ""} ${
+            phase === "idle"
+              ? "is-idle"
+              : phase === "listening"
+                ? "is-listening"
+                : phase === "speaking"
+                  ? "is-speaking"
+                  : "is-connecting"
+          }`}
+        >
+          {/* The whole globe is the call button, as on the reference widget. */}
+          <button
+            type="button"
+            onClick={active ? end : start}
+            aria-label={active ? t(copy.end) : t(copy.call)}
+            className="vorb-stage"
+          >
+            <span aria-hidden="true" className="vorb-shadow" />
+            {[0, 0.6, 1.2].map((d) => (
+              <span
+                key={d}
+                aria-hidden="true"
+                className="vorb-ring"
+                style={{ animationDelay: `${d}s` }}
+              />
+            ))}
+            <span aria-hidden="true" className="vorb-glow" />
+            <VoiceOrb level={level} active={active} size={300} className="vorb-canvas" />
+            {[0, 0.7, 1.4, 2.1].map((d) => (
+              <span
+                key={d}
+                aria-hidden="true"
+                className="vorb-ripple"
+                style={{ animationDelay: `${d}s` }}
+              />
+            ))}
+            <span aria-hidden="true" className="vorb-bars">
+              {BARS.map(([max, dur, delay], i) => (
                 <span
-                  aria-hidden="true"
-                  className="absolute h-[72px] w-[72px] animate-ping rounded-full bg-ld-gold/30 motion-reduce:hidden"
+                  key={i}
+                  className="vorb-bar"
+                  style={
+                    {
+                      "--max": `${max}px`,
+                      "--dur": `${dur}s`,
+                      animationDelay: `${delay}s`,
+                    } as CSSProperties
+                  }
                 />
-              )}
-              <Mic className="relative h-8 w-8" />
-            </button>
-            {!active && (
-              <button
-                type="button"
-                onClick={start}
-                className="btn btn-primary btn-sm shadow-lg shadow-ld-gold-dark/30"
-              >
-                {t(copy.call)}
-              </button>
-            )}
-          </div>
-          <span className="absolute bottom-1 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-ld-navy shadow-[0_4px_18px_color-mix(in_srgb,var(--ld-navy)_14%,transparent)]">
+              ))}
+            </span>
+            <span aria-hidden="true" className="vorb-mic">
+              <Mic className="h-9 w-9" strokeWidth={1.6} />
+            </span>
+            <span aria-hidden="true" className="vorb-hint vorb-hint--call">
+              {t(copy.call)}
+            </span>
+            <span aria-hidden="true" className="vorb-hint vorb-hint--end">
+              {t(copy.end)}
+            </span>
+          </button>
+          <span className="vorb-badge">
             <Sparkles className="h-3.5 w-3.5 text-ld-gold-dark" />
             {t(copy.line)}
           </span>

@@ -816,3 +816,382 @@
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------------
+ * Voice AI orb (src/components/chat/VoiceAgent.tsx). The whole stage is the
+ * call button. Layers, back to front: shadow, rings, glow, globe canvas, mic,
+ * listening ripples or speaking bars, hint pill. State classes: .is-idle,
+ * .is-connecting, .is-listening, .is-speaking (plus .is-active during a call).
+ * ---------------------------------------------------------------------- */
+.vorb {
+  --vorb: var(--ld-gold-dark);
+  --vorb-ink: var(--ld-navy);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+}
+.vorb-stage {
+  position: relative;
+  width: min(340px, calc(100vw - 32px));
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.vorb-stage:focus-visible {
+  outline: 2px solid var(--vorb-ink);
+  outline-offset: -12px;
+}
+.vorb-canvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  transition:
+    filter 0.2s,
+    transform 0.3s var(--ld-ease);
+}
+.vorb-stage:hover .vorb-canvas {
+  filter: brightness(1.12) drop-shadow(0 0 36px color-mix(in srgb, var(--vorb) 35%, transparent));
+  transform: translate(-50%, -50%) scale(1.06);
+}
+.vorb-stage:active .vorb-canvas {
+  transform: translate(-50%, -50%) scale(0.96);
+  transition-duration: 0.08s;
+}
+
+.vorb-shadow {
+  position: absolute;
+  bottom: 22px;
+  width: 230px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--vorb);
+  filter: blur(26px);
+  opacity: 0.45;
+  pointer-events: none;
+  animation: vorb-shadow 3s ease-in-out infinite;
+  transition:
+    width 0.4s,
+    height 0.4s,
+    opacity 0.4s,
+    filter 0.4s;
+}
+.is-speaking .vorb-shadow {
+  animation-duration: 1.5s;
+  background: var(--vorb-ink);
+  opacity: 0.3;
+}
+.is-connecting .vorb-shadow {
+  animation-duration: 1.2s;
+}
+.is-idle .vorb-stage:hover .vorb-shadow {
+  width: 270px;
+  height: 76px;
+  opacity: 0.65;
+  filter: blur(34px);
+}
+
+.vorb-ring {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--vorb) 45%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.is-idle .vorb-ring {
+  animation: vorb-breathe 1.3s ease-in-out infinite;
+}
+.is-idle .vorb-stage:hover .vorb-ring {
+  border-color: color-mix(in srgb, var(--vorb) 70%, transparent);
+  animation-duration: 0.9s;
+}
+.is-connecting .vorb-ring,
+.is-listening .vorb-ring,
+.is-speaking .vorb-ring {
+  animation: vorb-expand 2.8s ease-out infinite;
+}
+.is-connecting .vorb-ring {
+  animation-duration: 1.4s;
+}
+.is-speaking .vorb-ring {
+  animation-duration: 1.6s;
+  border-color: color-mix(in srgb, var(--vorb-ink) 30%, transparent);
+}
+
+.vorb-glow {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--vorb) 18%, transparent) 0%,
+    color-mix(in srgb, var(--vorb) 6%, transparent) 45%,
+    transparent 70%
+  );
+  transition:
+    transform 0.6s,
+    background 0.6s;
+}
+.is-idle .vorb-stage:hover .vorb-glow {
+  transform: scale(1.06);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--vorb) 32%, transparent) 0%,
+    color-mix(in srgb, var(--vorb) 12%, transparent) 45%,
+    transparent 70%
+  );
+}
+.is-connecting .vorb-glow {
+  animation: vorb-glow 1.4s ease-in-out infinite;
+}
+
+.vorb-mic {
+  position: absolute;
+  z-index: 5;
+  width: 76px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  background: color-mix(in srgb, var(--vorb-ink) 58%, transparent);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  backdrop-filter: blur(14px);
+  transition:
+    background 0.4s,
+    opacity 0.4s,
+    transform 0.4s;
+}
+.vorb-stage:hover .vorb-mic {
+  background: color-mix(in srgb, var(--vorb-ink) 82%, transparent);
+}
+.is-connecting .vorb-mic svg {
+  animation: vorb-fade 1.5s ease-in-out infinite;
+}
+.is-speaking .vorb-mic {
+  opacity: 0;
+  transform: scale(0.7);
+}
+
+/* Listening: ripples out of the mic. */
+.vorb-ripple {
+  position: absolute;
+  z-index: 4;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--vorb) 70%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.is-listening .vorb-ripple {
+  animation: vorb-ripple 2.8s ease-out infinite;
+}
+
+/* Speaking: equaliser bars in place of the mic. */
+.vorb-bars {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 64px;
+  opacity: 0;
+  transition: opacity 0.5s;
+  pointer-events: none;
+}
+.is-speaking .vorb-bars {
+  opacity: 1;
+}
+.vorb-bar {
+  width: 6px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--vorb-ink);
+  animation: vorb-bar var(--dur, 0.75s) ease-in-out infinite alternate paused;
+}
+.is-speaking .vorb-bar {
+  animation-play-state: running;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--vorb) 70%, transparent);
+}
+
+/* Call pill under the mic; during a call, hovering shows the end-call pill instead. */
+.vorb-hint {
+  position: absolute;
+  top: calc(50% + 52px);
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  overflow: hidden;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  color: var(--ld-btn-ink);
+  background: linear-gradient(
+    90deg,
+    var(--ld-gold-button),
+    var(--ld-gold-dark),
+    var(--ld-gold-button)
+  );
+  background-size: 200% 100%;
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--vorb) 55%, transparent),
+    0 0 40px color-mix(in srgb, var(--vorb) 30%, transparent);
+  animation: vorb-hint-bg 3s ease-in-out infinite;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.vorb-hint::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -100%;
+  width: 60%;
+  background: linear-gradient(105deg, transparent 20%, rgb(255 255 255 / 0.5) 50%, transparent 80%);
+  animation: vorb-shimmer 2.8s ease-in-out infinite;
+}
+.vorb-hint--end {
+  opacity: 0;
+  color: #fff;
+  background: var(--vorb-ink);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--vorb-ink) 35%, transparent);
+}
+.vorb-hint--end::after {
+  display: none;
+}
+.is-active .vorb-hint--call {
+  opacity: 0;
+}
+.is-active .vorb-stage:hover .vorb-hint--end,
+.is-active .vorb-stage:focus-visible .vorb-hint--end {
+  opacity: 1;
+}
+
+/* Floating name badge under the globe. */
+.vorb-badge {
+  position: relative;
+  z-index: 10;
+  margin-top: -26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--vorb) 28%, transparent);
+  background: #fff;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--vorb-ink);
+  box-shadow:
+    0 6px 28px color-mix(in srgb, var(--vorb) 45%, transparent),
+    0 2px 6px rgb(0 0 0 / 0.06);
+  animation: vorb-float 4s ease-in-out infinite;
+  pointer-events: none;
+}
+.vorb:hover .vorb-badge {
+  animation-duration: 1.2s;
+  box-shadow:
+    0 8px 34px color-mix(in srgb, var(--vorb) 60%, transparent),
+    0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+@keyframes vorb-shadow {
+  50% {
+    transform: scaleX(1.08);
+    opacity: 0.6;
+  }
+}
+@keyframes vorb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.85;
+  }
+}
+@keyframes vorb-expand {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+@keyframes vorb-glow {
+  50% {
+    transform: scale(1.08);
+    opacity: 0.6;
+  }
+}
+@keyframes vorb-fade {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes vorb-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(4.2);
+    opacity: 0;
+  }
+}
+@keyframes vorb-bar {
+  to {
+    height: var(--max, 40px);
+  }
+}
+@keyframes vorb-hint-bg {
+  50% {
+    background-position: 100% 0;
+  }
+}
+@keyframes vorb-shimmer {
+  0%,
+  30% {
+    left: -100%;
+  }
+  80%,
+  100% {
+    left: 140%;
+  }
+}
+@keyframes vorb-float {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vorb *,
+  .vorb *::after {
+    animation: none !important;
+  }
+  .is-idle .vorb-ring {
+    opacity: 0.5;
+  }
+}
