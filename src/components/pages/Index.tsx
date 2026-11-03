@@ -1,10 +1,11 @@
 import { HeroMedia } from "@/components/HeroMedia";
-import { VoiceAgent } from "@/components/chat/VoiceAgent";
+import { openVoice } from "@/lib/chat-events";
 import { Link } from "@tanstack/react-router";
 import {
   Anchor,
   ArrowRight,
   ArrowUpRight,
+  AudioLines,
   Check,
   FileCheck,
   Globe,
@@ -22,6 +23,7 @@ import { phoneHref, emailHref } from "@/lib/contact";
 import { useLang } from "@/lib/i18n";
 
 const copy = {
+  askVoice: { en: "Ask our AI by voice", vi: "Hỏi AI bằng giọng nói" },
   heroTitle: {
     en: "Vietnamese Coffee, Exported Lean & Traceable",
     vi: "Cà phê Việt Nam — xuất khẩu tinh gọn & minh bạch",
@@ -178,7 +180,7 @@ export default function Index() {
           />
           <div className="absolute inset-0 bg-black/50" />
 
-          <div className="container relative z-10 mx-auto grid items-center gap-10 px-4 text-center md:text-left lg:grid-cols-[minmax(0,1fr)_464px] lg:pt-16 xl:gap-16">
+          <div className="container relative z-10 mx-auto px-4 text-center md:text-left lg:pt-16">
             <div className="max-w-4xl">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight md:leading-none lg:leading-none">
                 {t(copy.heroTitle)}
@@ -186,22 +188,24 @@ export default function Index() {
               <p className="text-lg md:text-2xl text-gray-200 mb-10 font-medium">
                 {t(businessConfig.localized.tagline)}
               </p>
-              <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex flex-col flex-wrap items-center gap-4 sm:flex-row">
                 <Link to="/get-free-quote" className="btn btn-primary w-full sm:w-auto">
                   {t(copy.getQuote)}{" "}
                   <span className="btn-arrow">
                     <ArrowRight />
                   </span>
                 </Link>
+                <button
+                  type="button"
+                  onClick={openVoice}
+                  className="btn btn-outline-light w-full sm:w-auto"
+                >
+                  <AudioLines className="h-4 w-4" /> {t(copy.askVoice)}
+                </button>
                 <a href={telHref} className="btn btn-outline-light w-full sm:w-auto">
                   <Phone className="h-4 w-4" /> {businessConfig.phone}
                 </a>
               </div>
-            </div>
-            {/* Voice AI: talk to the sales assistant right from the hero.
-                Right padding keeps the card clear of the floating contact buttons. */}
-            <div className="flex justify-center lg:justify-end lg:pr-16">
-              <VoiceAgent />
             </div>
           </div>
         </section>

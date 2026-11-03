@@ -10,7 +10,7 @@ import {
 import { Coffee, Loader2, MessageCircle, Mic, SendHorizontal, Square, X } from "lucide-react";
 import { useLocation } from "@tanstack/react-router";
 import { pollChat, saveChatContact, sendChatMessage, type ChatMessage } from "@/functions/chat";
-import { OPEN_CHAT_EVENT } from "@/lib/chat-events";
+import { OPEN_CHAT_EVENT, OPEN_VOICE_EVENT } from "@/lib/chat-events";
 import { useLang } from "@/lib/i18n";
 import { createRecognition, speechSupported, type Recognition } from "@/lib/speech";
 import { MessageText } from "./MessageText";
@@ -142,10 +142,14 @@ export function ChatWidget() {
     }
     const timer = greeted ? undefined : setTimeout(() => setGreeting(true), 3500);
     const onOpen = () => setOpen(true);
+    // One popup at a time: the voice popup takes the same corner.
+    const onVoice = () => setOpen(false);
     window.addEventListener(OPEN_CHAT_EVENT, onOpen);
+    window.addEventListener(OPEN_VOICE_EVENT, onVoice);
     return () => {
       clearTimeout(timer);
       window.removeEventListener(OPEN_CHAT_EVENT, onOpen);
+      window.removeEventListener(OPEN_VOICE_EVENT, onVoice);
     };
   }, []);
 

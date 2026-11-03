@@ -799,3 +799,20 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Voice AI popup: grows out of the floating button corner (bottom sheet on phones). */
+@keyframes voice-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+}
+.voice-pop {
+  transform-origin: bottom right;
+  animation: voice-pop-in 0.22s var(--ld-ease) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-pop {
+    animation: none;
+  }
+}

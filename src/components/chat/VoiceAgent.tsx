@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AudioLines, MessageCircle, Mic, Phone, PhoneOff } from "lucide-react";
+import { AudioLines, MessageCircle, Mic, Phone, PhoneOff, Sparkles, X } from "lucide-react";
 import { getAssistantStatus, sendChatMessage } from "@/functions/chat";
 import { businessConfig } from "@/config/business";
 import { openChat } from "@/lib/chat-events";
@@ -61,6 +61,8 @@ const copy = {
     vi: "Mất kết nối. Kiểm tra mạng rồi thử lại.",
   },
   chat: { en: "Chat instead", vi: "Nhắn tin" },
+  close: { en: "Close", vi: "Đóng" },
+  line: { en: "Lean Export AI voice line", vi: "Tổng đài AI Lean Export" },
   you: { en: "You", vi: "Bạn" },
   disclaimer: {
     en: "AI answers are for guidance; prices and terms are confirmed by our sales team.",
@@ -78,7 +80,7 @@ function readVoiceSession(): { sessionId: string; token: string } | null {
 }
 
 /** Voice AI widget: a spoken conversation with the website's AI assistant. */
-export function VoiceAgent() {
+export function VoiceAgent({ onClose }: { onClose?: () => void }) {
   const { t, lang } = useLang();
   const [phase, setPhase] = useState<Phase>("idle");
   const [problem, setProblem] = useState<Problem>(null);
@@ -277,43 +279,77 @@ export function VoiceAgent() {
             ? t(copy.speaking)
             : null;
 
+  const close = () => {
+    end();
+    onClose?.();
+  };
+
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-[24px] bg-white text-ld-ink shadow-2xl shadow-black/30">
+    <div className="w-full overflow-hidden bg-white text-ld-ink">
       <div className="flex items-center justify-between gap-3 bg-ld-navy px-5 py-3.5 text-white">
         <span className="flex items-center gap-2.5 font-bold">
           <AudioLines className="h-5 w-5 text-ld-gold" />
           {t(copy.title)}
         </span>
-        <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-semibold text-white/90">
-          {t(copy.badge)}
+        <span className="flex items-center gap-2">
+          <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-semibold text-white/90">
+            {t(copy.badge)}
+          </span>
+          {onClose && (
+            <button
+              type="button"
+              onClick={close}
+              aria-label={t(copy.close)}
+              className="-mr-1.5 inline-flex h-8 w-8 items-center justify-center rounded-full text-white/80 hover:bg-white hover:text-ld-black"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </span>
       </div>
 
-      <div className="flex flex-col items-center px-5 pb-5 pt-3">
+      <div className="flex flex-col items-center px-5 pb-5 pt-2">
         <div className="relative">
-          <VoiceOrb level={level} active={active} size={240} />
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          {/* Soft light pooling under the globe */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-[12%] bottom-[2%] h-[38%] rounded-[50%] bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--ld-gold)_60%,transparent),transparent)] blur-xl"
+          />
+          <VoiceOrb level={level} active={active} size={300} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pt-6">
             <button
               type="button"
               onClick={active ? end : start}
               aria-label={active ? t(copy.end) : t(copy.call)}
-              className={`flex h-16 w-16 items-center justify-center rounded-full shadow-lg transition-colors ${
-                active
-                  ? "bg-white/90 text-ld-navy ring-2 ring-ld-gold"
-                  : "bg-ld-navy/85 text-white hover:bg-ld-navy"
-              } ${phase === "listening" ? "animate-pulse" : ""}`}
+              className={`relative flex h-[72px] w-[72px] items-center justify-center rounded-full text-white shadow-lg shadow-ld-navy/20 ring-1 ring-white/50 backdrop-blur-[3px] transition-colors ${
+                active ? "bg-ld-navy" : "bg-ld-navy/75 hover:bg-ld-navy/90"
+              }`}
             >
-              <Mic className="h-7 w-7" />
+              {phase === "listening" && (
+                <span
+                  aria-hidden="true"
+                  className="absolute h-[72px] w-[72px] animate-ping rounded-full bg-ld-gold/30 motion-reduce:hidden"
+                />
+              )}
+              <Mic className="relative h-8 w-8" />
             </button>
             {!active && (
-              <button type="button" onClick={start} className="btn btn-primary btn-sm shadow-lg">
+              <button
+                type="button"
+                onClick={start}
+                className="btn btn-primary btn-sm shadow-lg shadow-ld-gold-dark/30"
+              >
                 {t(copy.call)}
               </button>
             )}
           </div>
+          <span className="absolute bottom-1 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-ld-navy shadow-[0_4px_18px_color-mix(in_srgb,var(--ld-navy)_14%,transparent)]">
+            <Sparkles className="h-3.5 w-3.5 text-ld-gold-dark" />
+            {t(copy.line)}
+          </span>
         </div>
 
-        <div className="min-h-[4.5rem] w-full text-center" aria-live="polite">
+        <div className="mt-4 min-h-[4.5rem] w-full text-center" aria-live="polite">
           {problem ? (
             <div className="space-y-3">
               <p className="text-sm text-red-700">{t(copy[problem])}</p>
