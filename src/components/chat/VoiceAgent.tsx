@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { AudioLines, MessageCircle, Mic, Phone, PhoneOff, Sparkles, X } from "lucide-react";
+import { AudioLines, Mic, Sparkles, X } from "lucide-react";
 import { getAssistantStatus, sendChatMessage } from "@/functions/chat";
-import { businessConfig } from "@/config/business";
-import { openChat } from "@/lib/chat-events";
-import { phoneHref } from "@/lib/contact";
 import { useLang } from "@/lib/i18n";
 import {
   createRecognition,
@@ -60,7 +57,7 @@ const copy = {
     en: "Connection problem. Check your internet and try again.",
     vi: "Mất kết nối. Kiểm tra mạng rồi thử lại.",
   },
-  chat: { en: "Chat instead", vi: "Nhắn tin" },
+  tapToEnd: { en: "tap the globe to end", vi: "chạm quả cầu để kết thúc" },
   close: { en: "Close", vi: "Đóng" },
   line: { en: "Lean Export AI voice line", vi: "Tổng đài AI Lean Export" },
   you: { en: "You", vi: "Bạn" },
@@ -392,22 +389,12 @@ export function VoiceAgent({ onClose }: { onClose?: () => void }) {
 
         <div className="mt-4 min-h-[4.5rem] w-full text-center" aria-live="polite">
           {problem ? (
-            <div className="space-y-3">
-              <p className="text-sm text-red-700">{t(copy[problem])}</p>
-              {(problem === "offline" || problem === "unsupported") && (
-                <div className="flex flex-wrap justify-center gap-2">
-                  <a href={phoneHref()} className="btn btn-outline-dark btn-sm">
-                    <Phone className="h-4 w-4" /> {businessConfig.phone}
-                  </a>
-                  <button type="button" onClick={openChat} className="btn btn-primary btn-sm">
-                    <MessageCircle className="h-4 w-4" /> {t(copy.chat)}
-                  </button>
-                </div>
-              )}
-            </div>
+            <p className="text-sm leading-relaxed text-ld-ink">{t(copy[problem])}</p>
           ) : active ? (
             <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-ld-muted">{status}</p>
+              <p className="text-xs font-semibold text-ld-muted">
+                {status} · {t(copy.tapToEnd)}
+              </p>
               {heard && phase !== "speaking" && (
                 <p className="line-clamp-2 text-sm text-ld-ink">
                   <span className="font-semibold">{t(copy.you)}:</span> {heard}
@@ -422,11 +409,6 @@ export function VoiceAgent({ onClose }: { onClose?: () => void }) {
           )}
         </div>
 
-        {active && (
-          <button type="button" onClick={end} className="btn btn-outline-dark btn-sm mt-1">
-            <PhoneOff className="h-4 w-4" /> {t(copy.end)}
-          </button>
-        )}
         <p className="mt-3 text-center text-[11px] leading-snug text-ld-dim">
           {t(copy.disclaimer)}
         </p>
