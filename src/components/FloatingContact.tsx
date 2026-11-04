@@ -1,99 +1,103 @@
-import { AudioLines, Phone } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AudioLines, Plus } from "lucide-react";
 import { businessConfig } from "@/config/business";
 import { openVoice, voiceEnabled } from "@/lib/chat-events";
-import { phoneHref, whatsappHref, zaloHref } from "@/lib/contact";
+import { zaloHref } from "@/lib/contact";
 import { useLang } from "@/lib/i18n";
 
 const labels = {
-  whatsapp: { en: "Chat on WhatsApp", vi: "Chat WhatsApp" },
   zalo: { en: "Chat on Zalo", vi: "Chat Zalo" },
-  call: { en: "Call us", vi: "Gọi ngay" },
   voice: { en: "Ask our AI by voice", vi: "Hỏi AI bằng giọng nói" },
+  more: { en: "More ways to contact us", vi: "Thêm cách liên hệ" },
+  less: { en: "Hide contact options", vi: "Thu gọn" },
 };
 
-function WhatsAppIcon() {
+/** Same size as the chat launcher on phones (48px); a touch smaller than it on desktop. */
+const BUTTON =
+  "group relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-lg shadow-black/20 transition-transform hover:scale-105 md:h-13 md:w-13";
+
+/** Name beside the button: on hover on desktop, always while the phone menu is open. */
+function Label({ text }: { text: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true">
-      <path d="M17.47 14.38c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.79-1.47-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.14-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.6-.92-2.2-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.7.63.71.22 1.36.19 1.87.12.57-.08 1.75-.72 2-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.05 21.5h-.01a9.45 9.45 0 0 1-4.82-1.32l-.35-.2-3.58.94.96-3.49-.23-.36a9.43 9.43 0 0 1-1.45-5.02c0-5.22 4.25-9.46 9.48-9.46 2.53 0 4.9.99 6.69 2.78a9.4 9.4 0 0 1 2.77 6.7c0 5.22-4.25 9.46-9.46 9.46zm8.05-17.52A11.32 11.32 0 0 0 12.05.65C5.78.65.67 5.75.67 12.03c0 2 .52 3.96 1.52 5.69L.57 23.65l6.07-1.59a11.35 11.35 0 0 0 5.41 1.38h.01c6.27 0 11.38-5.1 11.38-11.38 0-3.04-1.18-5.9-3.34-8.06z" />
-    </svg>
+    <span className="pointer-events-none absolute right-full mr-3 whitespace-nowrap rounded-full bg-brand-ink px-3 py-1.5 text-xs font-semibold text-white shadow-lg md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
+      {text}
+    </span>
   );
 }
 
-function FloatingButton({
-  href,
-  label,
-  className,
-  external,
-  children,
-}: {
-  href: string;
-  label: string;
-  className: string;
-  external?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      aria-label={label}
-      {...(external && { target: "_blank", rel: "noopener noreferrer" })}
-      className={`group relative flex h-11 w-11 items-center justify-center rounded-full shadow-lg shadow-black/20 transition-transform hover:scale-105 md:h-13 md:w-13 ${className}`}
-    >
-      {children}
-      <span className="pointer-events-none absolute right-full mr-3 hidden whitespace-nowrap rounded-full bg-brand-ink px-3 py-1.5 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 md:block">
-        {label}
-      </span>
-    </a>
-  );
-}
-
-/** Floating quick-contact buttons (WhatsApp, Zalo, phone, Voice AI), stacked above the chat launcher. */
+/**
+ * Floating buttons above the chat launcher: Voice AI first, then Zalo. On
+ * phones they fold behind one button so they don't cover the page.
+ */
 export function FloatingContact() {
   const { t } = useLang();
-  return (
-    <div className="fixed bottom-[5.5rem] right-[1.375rem] z-40 flex flex-col gap-3 md:bottom-[6.25rem] md:right-[1.625rem]">
-      {businessConfig.whatsapp && (
-        <FloatingButton
-          href={whatsappHref()}
-          label={t(labels.whatsapp)}
-          external
-          className="bg-[#25D366] text-white"
-        >
-          <WhatsAppIcon />
-        </FloatingButton>
-      )}
-      {businessConfig.zalo && (
-        <FloatingButton
-          href={zaloHref()}
-          label={t(labels.zalo)}
-          external
-          className="bg-[#0068FF] text-white"
-        >
-          <span className="text-[13px] font-bold tracking-tight">Zalo</span>
-        </FloatingButton>
-      )}
-      <FloatingButton
-        href={phoneHref()}
-        label={t(labels.call)}
-        className="bg-primary text-primary-foreground"
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const items = [
+    voiceEnabled() && (
+      <button
+        key="voice"
+        type="button"
+        onClick={() => {
+          setOpen(false);
+          openVoice();
+        }}
+        aria-label={t(labels.voice)}
+        className={`${BUTTON} bg-ld-navy text-ld-gold ring-2 ring-ld-gold/60`}
       >
-        <Phone className="h-5 w-5" />
-      </FloatingButton>
-      {/* Voice AI sits next to the chat launcher: the two AI entry points stay together. */}
-      {voiceEnabled() && (
-        <button
-          type="button"
-          onClick={openVoice}
-          aria-label={t(labels.voice)}
-          className="group relative flex h-11 w-11 items-center justify-center rounded-full bg-ld-navy text-ld-gold shadow-lg shadow-black/20 ring-2 ring-ld-gold/60 transition-transform hover:scale-105 md:h-13 md:w-13"
-        >
-          <AudioLines className="h-5 w-5 md:h-6 md:w-6" />
-          <span className="pointer-events-none absolute right-full mr-3 hidden whitespace-nowrap rounded-full bg-brand-ink px-3 py-1.5 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 md:block">
-            {t(labels.voice)}
-          </span>
-        </button>
-      )}
+        <AudioLines className="h-5 w-5 md:h-6 md:w-6" />
+        <Label text={t(labels.voice)} />
+      </button>
+    ),
+    businessConfig.zalo && (
+      <a
+        key="zalo"
+        href={zaloHref()}
+        aria-label={t(labels.zalo)}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => setOpen(false)}
+        className={`${BUTTON} bg-[#0068FF] text-white`}
+      >
+        <span className="text-[13px] font-bold tracking-tight">Zalo</span>
+        <Label text={t(labels.zalo)} />
+      </a>
+    ),
+  ].filter(Boolean);
+
+  // Tap anywhere else to fold the phone menu again.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  if (items.length === 0) return null;
+  return (
+    <div
+      ref={rootRef}
+      className="fixed bottom-20 right-4 z-40 flex flex-col items-center gap-3 md:bottom-[6.25rem] md:right-[1.625rem]"
+    >
+      <div
+        id="floating-contact-items"
+        className={`flex-col items-center gap-3 md:flex ${open ? "flex" : "hidden"}`}
+      >
+        {items}
+      </div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls="floating-contact-items"
+        aria-label={open ? t(labels.less) : t(labels.more)}
+        className={`${BUTTON} bg-ld-navy text-white ring-2 ring-white/70 md:hidden`}
+      >
+        <Plus className={`h-6 w-6 transition-transform ${open ? "rotate-45" : ""}`} />
+      </button>
     </div>
   );
 }

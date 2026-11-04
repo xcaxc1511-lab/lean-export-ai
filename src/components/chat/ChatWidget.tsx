@@ -281,7 +281,7 @@ export function ChatWidget() {
     <>
       {/* Greeting bubble */}
       {greeting && !open && (
-        <div className="fixed bottom-5 right-[5.25rem] z-50 flex max-w-[calc(100vw-6.5rem)] items-start gap-3 rounded-2xl bg-white p-3.5 pr-9 shadow-xl shadow-black/15 ring-1 ring-black/5 md:bottom-8 md:right-[5.75rem] md:max-w-xs">
+        <div className="fixed bottom-5 right-[4.75rem] z-50 flex max-w-[calc(100vw-6rem)] items-start gap-3 rounded-2xl bg-white p-3.5 pr-9 shadow-xl shadow-black/15 ring-1 ring-black/5 md:bottom-8 md:right-[5.75rem] md:max-w-xs">
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -314,11 +314,15 @@ export function ChatWidget() {
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? t(copy.close) : t(copy.open)}
         aria-expanded={open}
-        className={`fixed bottom-5 right-4 z-50 h-14 w-14 items-center justify-center rounded-full bg-ld-gold-button text-ld-black shadow-lg shadow-black/25 transition-transform hover:scale-105 focus-visible:outline-offset-4 md:bottom-8 md:right-6 ${
+        className={`fixed bottom-5 right-4 z-50 h-12 w-12 items-center justify-center rounded-full bg-ld-gold-button text-ld-black shadow-lg shadow-black/25 transition-transform hover:scale-105 focus-visible:outline-offset-4 md:bottom-8 md:right-6 md:h-14 md:w-14 ${
           open ? "hidden md:flex" : "flex"
         }`}
       >
-        {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+        {open ? (
+          <X className="h-5 w-5 md:h-6 md:w-6" />
+        ) : (
+          <MessageCircle className="h-5 w-5 md:h-6 md:w-6" />
+        )}
       </button>
 
       {/* Panel */}
