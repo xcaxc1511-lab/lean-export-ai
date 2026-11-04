@@ -1,7 +1,7 @@
 import { AudioLines, Phone } from "lucide-react";
 import type { ReactNode } from "react";
 import { businessConfig } from "@/config/business";
-import { openVoice } from "@/lib/chat-events";
+import { openVoice, voiceEnabled } from "@/lib/chat-events";
 import { phoneHref, whatsappHref, zaloHref } from "@/lib/contact";
 import { useLang } from "@/lib/i18n";
 
@@ -81,17 +81,19 @@ export function FloatingContact() {
         <Phone className="h-5 w-5" />
       </FloatingButton>
       {/* Voice AI sits next to the chat launcher: the two AI entry points stay together. */}
-      <button
-        type="button"
-        onClick={openVoice}
-        aria-label={t(labels.voice)}
-        className="group relative flex h-11 w-11 items-center justify-center rounded-full bg-ld-navy text-ld-gold shadow-lg shadow-black/20 ring-2 ring-ld-gold/60 transition-transform hover:scale-105 md:h-13 md:w-13"
-      >
-        <AudioLines className="h-5 w-5 md:h-6 md:w-6" />
-        <span className="pointer-events-none absolute right-full mr-3 hidden whitespace-nowrap rounded-full bg-brand-ink px-3 py-1.5 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 md:block">
-          {t(labels.voice)}
-        </span>
-      </button>
+      {voiceEnabled() && (
+        <button
+          type="button"
+          onClick={openVoice}
+          aria-label={t(labels.voice)}
+          className="group relative flex h-11 w-11 items-center justify-center rounded-full bg-ld-navy text-ld-gold shadow-lg shadow-black/20 ring-2 ring-ld-gold/60 transition-transform hover:scale-105 md:h-13 md:w-13"
+        >
+          <AudioLines className="h-5 w-5 md:h-6 md:w-6" />
+          <span className="pointer-events-none absolute right-full mr-3 hidden whitespace-nowrap rounded-full bg-brand-ink px-3 py-1.5 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 md:block">
+            {t(labels.voice)}
+          </span>
+        </button>
+      )}
     </div>
   );
 }

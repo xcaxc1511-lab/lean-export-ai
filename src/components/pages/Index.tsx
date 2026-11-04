@@ -1,5 +1,5 @@
 import { HeroMedia } from "@/components/HeroMedia";
-import { openVoice } from "@/lib/chat-events";
+import { openVoice, voiceEnabled } from "@/lib/chat-events";
 import { Link } from "@tanstack/react-router";
 import {
   Anchor,
@@ -195,13 +195,15 @@ export default function Index() {
                     <ArrowRight />
                   </span>
                 </Link>
-                <button
-                  type="button"
-                  onClick={openVoice}
-                  className="btn btn-outline-light w-full sm:w-auto"
-                >
-                  <AudioLines className="h-4 w-4" /> {t(copy.askVoice)}
-                </button>
+                {voiceEnabled() && (
+                  <button
+                    type="button"
+                    onClick={openVoice}
+                    className="btn btn-outline-light w-full sm:w-auto"
+                  >
+                    <AudioLines className="h-4 w-4" /> {t(copy.askVoice)}
+                  </button>
+                )}
                 <a href={telHref} className="btn btn-outline-light w-full sm:w-auto">
                   <Phone className="h-4 w-4" /> {businessConfig.phone}
                 </a>

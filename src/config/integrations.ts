@@ -5,6 +5,12 @@ export const integrationsConfig = {
   heroPosterUrl: images.heroPlantation,
   /** Supplied GHL review widget iframe URL; never fabricate reviews. */
   reviewWidgetUrl: "",
+  /**
+   * LeadConnector (GHL) Voice AI widget ID for Lean Export, from GHL: Settings →
+   * Chat Widget → the Voice AI widget → its embed code (data-widget-id). Opens from
+   * the floating voice button and the hero button. Empty = voice buttons hidden.
+   */
+  voiceWidgetId: "",
   /** LeadConnector quote form embed ID (used on the quote page). */
   quoteFormId: "YOUR_QUOTE_FORM_ID",
   /** LeadConnector contact form embed ID (used on the contact page). */
