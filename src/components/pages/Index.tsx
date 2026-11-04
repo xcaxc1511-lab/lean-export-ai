@@ -1,11 +1,9 @@
 import { HeroMedia } from "@/components/HeroMedia";
-import { openVoice, voiceEnabled } from "@/lib/chat-events";
 import { Link } from "@tanstack/react-router";
 import {
   Anchor,
   ArrowRight,
   ArrowUpRight,
-  AudioLines,
   Check,
   FileCheck,
   Globe,
@@ -23,7 +21,6 @@ import { phoneHref, emailHref } from "@/lib/contact";
 import { useLang } from "@/lib/i18n";
 
 const copy = {
-  askVoice: { en: "Ask our AI by voice", vi: "Hỏi AI bằng giọng nói" },
   heroTitle: {
     en: "Vietnamese Coffee, Exported Lean & Traceable",
     vi: "Cà phê Việt Nam — xuất khẩu tinh gọn & minh bạch",
@@ -195,18 +192,6 @@ export default function Index() {
                     <ArrowRight />
                   </span>
                 </Link>
-                {voiceEnabled() && (
-                  <button
-                    type="button"
-                    onClick={openVoice}
-                    className="btn btn-outline-light w-full sm:w-auto"
-                  >
-                    <AudioLines className="h-4 w-4" /> {t(copy.askVoice)}
-                  </button>
-                )}
-                <a href={telHref} className="btn btn-outline-light w-full sm:w-auto">
-                  <Phone className="h-4 w-4" /> {businessConfig.phone}
-                </a>
               </div>
             </div>
           </div>

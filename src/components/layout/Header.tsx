@@ -198,10 +198,6 @@ export function Header() {
 
           <div className="flex items-center gap-3">
             <LanguageToggle />
-            <a href={phoneHref()} className="btn btn-outline-light btn-sm hidden xl:inline-flex">
-              <Phone className="w-4 h-4" />
-              {businessConfig.phone}
-            </a>
             <Link to={navigationConfig.cta.href} className="btn btn-primary btn-sm">
               {t(navigationConfig.cta.label)}
             </Link>
