@@ -10,7 +10,7 @@ export const integrationsConfig = {
    * Chat Widget → the Voice AI widget → its embed code (data-widget-id). Opens from
    * the floating voice button and the hero button. Empty = voice buttons hidden.
    */
-  voiceWidgetId: "",
+  voiceWidgetId: "6ac5b89fc4072640328658c0", // shared with the 3P Logistics site, by the owner's choice
   /** LeadConnector quote form embed ID (used on the quote page). */
   quoteFormId: "YOUR_QUOTE_FORM_ID",
   /** LeadConnector contact form embed ID (used on the contact page). */
